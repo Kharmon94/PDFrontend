@@ -36,10 +36,13 @@ RUN echo '#!/bin/sh' > /usr/share/nginx/html/health.sh && \
 # Install curl for health check testing
 RUN apk add --no-cache curl
 
+# Install gettext for envsubst
+RUN apk add --no-cache gettext
+
 # Create startup script that uses Railway's PORT
 RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
     echo 'PORT=${PORT:-80}' >> /docker-entrypoint.sh && \
-    echo 'envsubst '"'"'$PORT'"'"' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'envsubst '"'"'$$PORT'"'"' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
     echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
     chmod +x /docker-entrypoint.sh
 
