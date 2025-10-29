@@ -11,3 +11,5 @@ restartPolicyType = "on_failure"
 
 [env]
 NODE_ENV = "production"
+# REACT_APP_API_URL should be set in Railway dashboard
+# Example: REACT_APP_API_URL = "https://your-backend.railway.app/api/v1"
