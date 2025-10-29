@@ -22,11 +22,11 @@ FROM nginx:alpine
 # Copy built files from builder stage
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy nginx configuration as template
+COPY nginx.conf /etc/nginx/conf.d/default.conf.template
 
 # Create a simple health check file
-RUN echo "OK" > /usr/share/nginx/html/health
+RUN mkdir -p /usr/share/nginx/html && echo "OK" > /usr/share/nginx/html/health
 
 # Create health check script
 RUN echo '#!/bin/sh' > /usr/share/nginx/html/health.sh && \
@@ -36,11 +36,15 @@ RUN echo '#!/bin/sh' > /usr/share/nginx/html/health.sh && \
 # Install curl for health check testing
 RUN apk add --no-cache curl
 
-# Test nginx configuration (this will now pass because nginx.conf uses 'listen 80;')
-RUN nginx -t
+# Create startup script that uses Railway's PORT
+RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
+    echo 'PORT=${PORT:-80}' >> /docker-entrypoint.sh && \
+    echo 'envsubst '"'"'$PORT'"'"' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
+    echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
+    chmod +x /docker-entrypoint.sh
 
-# Expose port (Railway will set this dynamically)
-EXPOSE $PORT
+# Expose port 80
+EXPOSE 80
 
-# Default command (will be overridden by railway.toml)
-CMD ["nginx", "-g", "daemon off;"]
+# Default command
+CMD ["/docker-entrypoint.sh"]
