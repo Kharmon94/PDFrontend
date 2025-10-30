@@ -2,7 +2,6 @@
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
-buildArgs = ["REACT_APP_API_URL"]
 
 [deploy]
 startCommand = "/docker-entrypoint.sh"

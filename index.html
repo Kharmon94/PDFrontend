@@ -9,6 +9,10 @@
 
     <body>
       <div id="root"></div>
+      <script>
+        // Set API URL from environment variable at runtime
+        window.REACT_APP_API_URL = '{{REACT_APP_API_URL}}';
+      </script>
       <script type="module" src="/src/main.tsx"></script>
     </body>
   </html>

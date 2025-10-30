@@ -1,5 +1,5 @@
 // API service for connecting to Rails backend
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api/v1';
+const API_BASE_URL = (window as any).REACT_APP_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:3001/api/v1';
 
 // Log the API URL being used (for debugging)
 console.log('API_BASE_URL:', API_BASE_URL);
