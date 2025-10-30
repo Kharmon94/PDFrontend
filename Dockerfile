@@ -16,6 +16,7 @@ COPY . .
 # Build the application with API URL from environment variable
 # This allows Railway to inject the correct backend URL at build time
 ARG REACT_APP_API_URL
+ENV REACT_APP_API_URL=${REACT_APP_API_URL}
 RUN npm run build
 
 # Production stage
