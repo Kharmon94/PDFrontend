@@ -177,8 +177,9 @@ export function BusinessDashboard({ businessId }: BusinessDashboardProps) {
 
         {/* Analytics Tab */}
         <TabsContent value="analytics" className="space-y-6">
-          {/* Stats Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="space-y-6">
+            {/* Stats Overview */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm">Total Views</CardTitle>
@@ -222,10 +223,10 @@ export function BusinessDashboard({ businessId }: BusinessDashboardProps) {
                 <p className="text-xs text-gray-600 mt-1">All time</p>
               </CardContent>
             </Card>
-          </div>
+            </div>
 
-          {/* Additional Stats */}
-          <div className="grid md:grid-cols-3 gap-6">
+            {/* Additional Stats */}
+            <div className="grid md:grid-cols-3 gap-6">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm">Website Clicks</CardTitle>
@@ -258,9 +259,9 @@ export function BusinessDashboard({ businessId }: BusinessDashboardProps) {
                 <p className="text-xs text-gray-600 mt-1">Last 7 days</p>
               </CardContent>
             </Card>
-          </div>
+            </div>
 
-          {/* Business Info */}
+            {/* Business Info */}
           <Card>
             <CardHeader>
               <CardTitle>Business Information</CardTitle>
@@ -278,10 +279,9 @@ export function BusinessDashboard({ businessId }: BusinessDashboardProps) {
                 </ResponsiveContainer>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Upgrade Section */}
-          <Card className="border-2 border-gray-300 bg-gray-50">
+            {/* Upgrade Section */}
+            <Card className="border-2 border-gray-300 bg-gray-50">
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
@@ -314,6 +314,7 @@ export function BusinessDashboard({ businessId }: BusinessDashboardProps) {
               </Button>
             </CardContent>
           </Card>
+          </div>
         </TabsContent>
 
         {/* Manage Listing Tab */}
