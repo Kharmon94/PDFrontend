@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigation } from './components/navigation';
 import { Footer } from './components/footer';
+import { HomePage } from './components/home-page';
 import { DirectoryPage } from './components/directory-page';
 import { BecomePartner } from './components/become-partner';
 import { BusinessDashboard } from './components/business-dashboard';
@@ -17,22 +18,28 @@ import { HelpCenter } from './components/help-center';
 import { PricingPlans } from './components/pricing-plans';
 import { CookieConsent } from './components/cookie-consent';
 import { Settings } from './components/settings';
-import { mockBusinesses } from './components/mock-data';
+import { ContactUs } from './components/contact-us';
+import { ListYourBusiness } from './components/list-your-business';
+import { ManageYourListing } from './components/manage-your-listing';
+import { PartnerDashboardLogin } from './components/partner-dashboard-login';
 import { Toaster } from './components/ui/sonner';
+import { apiService } from './services/api';
+import { User, UserType } from './types';
 
-type Page = 'directory' | 'become-partner' | 'dashboard' | 'distribution-partner' | 'listing-detail' | 'login' | 'saved-deals' | 'user-dashboard' | 'terms' | 'privacy' | 'cookies' | 'about' | 'help' | 'pricing' | 'settings';
+type Page = 'home' | 'directory' | 'become-partner' | 'dashboard' | 'distribution-partner' | 'listing-detail' | 'login' | 'saved-deals' | 'user-dashboard' | 'terms' | 'privacy' | 'cookies' | 'about' | 'help' | 'pricing' | 'settings' | 'contact-us' | 'list-your-business' | 'manage-your-listing' | 'partner-dashboard-login';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('directory');
+  const [currentPage, setCurrentPage] = useState<Page>('home');
   const [isBusinessLoggedIn, setIsBusinessLoggedIn] = useState(false);
   const [businessId, setBusinessId] = useState<string | null>(null);
   
   // User account state
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
-  const [savedDeals, setSavedDeals] = useState<string[]>([]);
-  const [userType, setUserType] = useState<'user' | 'partner' | 'distribution' | 'admin'>('user');
+  const [userType, setUserType] = useState<UserType>('user');
+  const [isInitializing, setIsInitializing] = useState(true);
   
   // Listing detail state
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
@@ -40,11 +47,42 @@ export default function App() {
   // Category navigation state
   const [selectedCategory, setSelectedCategory] = useState<string | undefined>(undefined);
   
+  // Location navigation state
+  const [selectedLocation, setSelectedLocation] = useState<string | undefined>(undefined);
+  
   // Cookie consent state
   const [showCookieConsent, setShowCookieConsent] = useState(true);
   
-  // Theme state
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Business login default tab state
+  const [businessLoginTab, setBusinessLoginTab] = useState<'login' | 'signup'>('login');
+  
+  // Partner login default tab state
+  const [partnerLoginTab, setPartnerLoginTab] = useState<'login' | 'signup'>('login');
+  
+  // Theme state - removed, no longer using dark mode
+
+  // Initialize user session on app load
+  useEffect(() => {
+    const initializeUser = async () => {
+      try {
+        const response = await apiService.getCurrentUser();
+        if (response.user) {
+          setCurrentUser(response.user);
+          setUserName(response.user.name);
+          setUserEmail(response.user.email);
+          setUserType(response.user.user_type);
+          setIsUserLoggedIn(true);
+        }
+      } catch (error) {
+        // User not authenticated, that's fine
+        console.log('No active session');
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    initializeUser();
+  }, []);
 
   const handleBusinessSignup = (id: string) => {
     setBusinessId(id);
@@ -52,19 +90,21 @@ export default function App() {
     setCurrentPage('dashboard');
   };
 
-  const handleUserLogin = (email: string, name: string, userType: string) => {
-    setUserEmail(email);
-    setUserName(name);
-    setUserType(userType as 'user' | 'partner' | 'distribution' | 'admin');
+  const handleUserLogin = (user: User) => {
+    setCurrentUser(user);
+    setUserEmail(user.email);
+    setUserName(user.name);
+    setUserType(user.user_type);
     setIsUserLoggedIn(true);
     setCurrentPage('directory');
   };
 
   const handleUserLogout = () => {
+    apiService.logout();
     setIsUserLoggedIn(false);
+    setCurrentUser(null);
     setUserName('');
     setUserEmail('');
-    setSavedDeals([]);
     setCurrentPage('directory');
   };
 
@@ -73,24 +113,24 @@ export default function App() {
     setCurrentPage('listing-detail');
   };
 
-  const handleToggleSaveDeal = (businessId: string) => {
-    setSavedDeals(prev => {
-      if (prev.includes(businessId)) {
-        return prev.filter(id => id !== businessId);
-      } else {
-        return [...prev, businessId];
-      }
-    });
-  };
 
   const handleLoginRequired = () => {
     setCurrentPage('login');
   };
 
-  const handleNavigate = (page: Page, category?: string) => {
+  const handleNavigate = (page: Page, category?: string, location?: string) => {
     setCurrentPage(page);
     if (page === 'directory') {
       setSelectedCategory(category);
+      setSelectedLocation(location);
+    }
+    // Reset business login tab to login when navigating to manage-your-listing from footer/other places
+    if (page === 'manage-your-listing') {
+      setBusinessLoginTab('login');
+    }
+    // Reset partner login tab to login when navigating to partner-dashboard-login from footer (Partner Dashboard button)
+    if (page === 'partner-dashboard-login') {
+      setPartnerLoginTab('login');
     }
   };
 
@@ -109,11 +149,23 @@ export default function App() {
   };
 
   const handleToggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
+    // No longer using dark mode
   };
 
+  // Show loading screen while initializing
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className={`min-h-screen bg-background flex flex-col ${isDarkMode ? 'dark' : ''}`}>
+    <div className="min-h-screen bg-background flex flex-col">
       <Navigation 
         currentPage={currentPage} 
         onNavigate={handleNavigate}
@@ -121,12 +173,15 @@ export default function App() {
         isUserLoggedIn={isUserLoggedIn}
         userName={userName}
         onLogout={handleUserLogout}
-        isDarkMode={isDarkMode}
+        isDarkMode={false}
         onToggleTheme={handleToggleTheme}
       />
       
+      {currentPage === 'home' && (
+        <HomePage onNavigate={handleNavigate} onViewListing={handleViewListing} />
+      )}
       {currentPage === 'directory' && (
-        <DirectoryPage onViewListing={handleViewListing} initialCategory={selectedCategory} />
+        <DirectoryPage onViewListing={handleViewListing} initialCategory={selectedCategory} initialLocation={selectedLocation} />
       )}
       {currentPage === 'become-partner' && (
         <BecomePartner 
@@ -137,39 +192,41 @@ export default function App() {
       {currentPage === 'dashboard' && (
         <BusinessDashboard businessId={businessId} />
       )}
-      {currentPage === 'distribution-partner' && <DistributionPartner />}
+      {currentPage === 'distribution-partner' && (
+        <DistributionPartner onGetStarted={() => {
+          setPartnerLoginTab('signup');
+          setCurrentPage('partner-dashboard-login');
+        }} />
+      )}
       {currentPage === 'listing-detail' && selectedBusinessId && (
         <ListingDetail
           businessId={selectedBusinessId}
-          businesses={mockBusinesses}
           onBack={() => setCurrentPage('directory')}
           isUserLoggedIn={isUserLoggedIn}
           onLoginRequired={handleLoginRequired}
-          savedDeals={savedDeals}
-          onToggleSave={handleToggleSaveDeal}
         />
       )}
       {currentPage === 'login' && (
         <UserAuth
           onLogin={handleUserLogin}
           onCancel={() => setCurrentPage('directory')}
+          businessLoginTab={businessLoginTab}
+          setBusinessLoginTab={setBusinessLoginTab}
         />
       )}
       {currentPage === 'saved-deals' && (
         <SavedDeals
-          savedDealIds={savedDeals}
-          businesses={mockBusinesses}
-          onRemoveDeal={handleToggleSaveDeal}
           onViewListing={handleViewListing}
+          onBack={() => setCurrentPage('user-dashboard')}
         />
       )}
       {currentPage === 'user-dashboard' && (
         <UserDashboard
           userType={userType}
           userName={userName}
-          savedDeals={savedDeals}
           onNavigate={handleNavigate}
           onDashboardTypeChange={handleDashboardTypeChange}
+          isUserLoggedIn={isUserLoggedIn}
         />
       )}
       {currentPage === 'settings' && (
@@ -177,30 +234,58 @@ export default function App() {
           onBack={() => setCurrentPage('user-dashboard')}
           userName={userName}
           userEmail={userEmail}
-          isDarkMode={isDarkMode}
+          isDarkMode={false}
           onToggleTheme={handleToggleTheme}
+          userType={userType === 'distribution' ? 'distribution' : userType === 'partner' ? 'business' : 'regular'}
+          hasWhiteLabel={userType === 'distribution'}
         />
       )}
       {currentPage === 'terms' && (
-        <TermsOfService onBack={() => setCurrentPage('directory')} />
+        <TermsOfService onBack={() => setCurrentPage('home')} />
       )}
       {currentPage === 'privacy' && (
-        <PrivacyPolicy onBack={() => setCurrentPage('directory')} />
+        <PrivacyPolicy onBack={() => setCurrentPage('home')} />
       )}
       {currentPage === 'cookies' && (
-        <CookiePolicy onBack={() => setCurrentPage('directory')} />
+        <CookiePolicy onBack={() => setCurrentPage('home')} />
       )}
       {currentPage === 'about' && (
-        <AboutUs onBack={() => setCurrentPage('directory')} />
+        <AboutUs onBack={() => setCurrentPage('home')} />
       )}
       {currentPage === 'help' && (
-        <HelpCenter onBack={() => setCurrentPage('directory')} />
+        <HelpCenter onBack={() => setCurrentPage('home')} />
       )}
       {currentPage === 'pricing' && (
-        <PricingPlans onBack={() => setCurrentPage('directory')} />
+        <PricingPlans onBack={() => setCurrentPage('home')} />
+      )}
+      {currentPage === 'contact-us' && (
+        <ContactUs onBack={() => setCurrentPage('home')} />
+      )}
+      {currentPage === 'list-your-business' && (
+        <ListYourBusiness 
+          onBack={() => setCurrentPage('home')} 
+          onGetStarted={() => {
+            setBusinessLoginTab('signup');
+            setCurrentPage('manage-your-listing');
+          }}
+        />
+      )}
+      {currentPage === 'manage-your-listing' && (
+        <ManageYourListing 
+          onBack={() => setCurrentPage('directory')} 
+          onLogin={() => setCurrentPage('dashboard')}
+          defaultTab={businessLoginTab}
+        />
+      )}
+      {currentPage === 'partner-dashboard-login' && (
+        <PartnerDashboardLogin 
+          onBack={() => setCurrentPage('directory')} 
+          onDistributionLogin={() => setCurrentPage('user-dashboard')}
+          defaultTab={partnerLoginTab}
+        />
       )}
       
-      <Footer onNavigate={(page) => handleNavigate(page)} isDarkMode={isDarkMode} />
+      <Footer onNavigate={(page) => handleNavigate(page)} />
       <Toaster />
       {showCookieConsent && (
         <CookieConsent 

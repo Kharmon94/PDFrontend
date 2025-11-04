@@ -1,5 +1,13 @@
+import { AuthResponse, User, Business, SavedDeal, ApiError } from '../types';
+
 // API service for connecting to Rails backend
-const API_BASE_URL = (window as any).REACT_APP_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:3001/api/v1';
+declare global {
+  interface Window {
+    REACT_APP_API_URL?: string;
+  }
+}
+
+const API_BASE_URL = window.REACT_APP_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:3001/api/v1';
 
 // Log the API URL being used (for debugging)
 console.log('API_BASE_URL:', API_BASE_URL);
@@ -39,7 +47,7 @@ class ApiService {
   }
 
   // Authentication methods
-  async login(email: string, password: string) {
+  async login(email: string, password: string): Promise<AuthResponse> {
     const response = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
@@ -53,7 +61,7 @@ class ApiService {
     return response;
   }
 
-  async signup(userData: { name: string; email: string; password: string; user_type?: string }) {
+  async signup(userData: { name: string; email: string; password: string; user_type?: string }): Promise<AuthResponse> {
     const response = await this.request('/auth/signup', {
       method: 'POST',
       body: JSON.stringify({ user: userData }),
@@ -67,7 +75,7 @@ class ApiService {
     return response;
   }
 
-  async getCurrentUser() {
+  async getCurrentUser(): Promise<{ user: User }> {
     return this.request('/auth/me');
   }
 
@@ -76,13 +84,17 @@ class ApiService {
     localStorage.removeItem('auth_token');
   }
 
+  isAuthenticated(): boolean {
+    return this.token !== null;
+  }
+
   // Business methods
   async getBusinesses(params: {
     search?: string;
     category?: string;
     featured?: boolean;
     deals?: boolean;
-  } = {}) {
+  } = {}): Promise<Business[]> {
     const queryParams = new URLSearchParams();
     
     if (params.search) queryParams.append('search', params.search);
@@ -96,39 +108,39 @@ class ApiService {
     return this.request(endpoint);
   }
 
-  async getBusiness(id: string) {
+  async getBusiness(id: string): Promise<Business> {
     return this.request(`/businesses/${id}`);
   }
 
-  async createBusiness(businessData: any) {
+  async createBusiness(businessData: any): Promise<Business> {
     return this.request('/businesses', {
       method: 'POST',
       body: JSON.stringify({ business: businessData }),
     });
   }
 
-  async updateBusiness(id: string, businessData: any) {
+  async updateBusiness(id: string, businessData: any): Promise<Business> {
     return this.request(`/businesses/${id}`, {
       method: 'PUT',
       body: JSON.stringify({ business: businessData }),
     });
   }
 
-  async deleteBusiness(id: string) {
+  async deleteBusiness(id: string): Promise<void> {
     return this.request(`/businesses/${id}`, {
       method: 'DELETE',
     });
   }
 
-  async getMyBusinesses() {
+  async getMyBusinesses(): Promise<Business[]> {
     return this.request('/businesses/my');
   }
 
-  async getBusinessAnalytics(id: string) {
+  async getBusinessAnalytics(id: string): Promise<any> {
     return this.request(`/businesses/${id}/analytics`);
   }
 
-  async trackBusinessClick(id: string, clickType: string) {
+  async trackBusinessClick(id: string, clickType: string): Promise<void> {
     return this.request(`/businesses/${id}/track_click`, {
       method: 'POST',
       body: JSON.stringify({ click_type: clickType }),
@@ -136,24 +148,24 @@ class ApiService {
   }
 
   // Saved deals methods
-  async getSavedDeals() {
+  async getSavedDeals(): Promise<Business[]> {
     return this.request('/saved_deals');
   }
 
-  async saveDeal(businessId: string) {
+  async saveDeal(businessId: string): Promise<SavedDeal> {
     return this.request('/saved_deals', {
       method: 'POST',
       body: JSON.stringify({ business_id: businessId }),
     });
   }
 
-  async removeSavedDeal(businessId: string) {
+  async removeSavedDeal(businessId: string): Promise<void> {
     return this.request(`/saved_deals/${businessId}`, {
       method: 'DELETE',
     });
   }
 
-  async toggleSavedDeal(businessId: string) {
+  async toggleSavedDeal(businessId: string): Promise<{ saved: boolean; message: string }> {
     return this.request('/saved_deals/toggle', {
       method: 'POST',
       body: JSON.stringify({ business_id: businessId }),

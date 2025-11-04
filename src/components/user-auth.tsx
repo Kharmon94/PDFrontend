@@ -6,18 +6,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner@2.0.3';
 import { apiService } from '../services/api';
+import { User } from '../types';
 
 interface UserAuthProps {
-  onLogin: (email: string, name: string, userType: string) => void;
+  onLogin: (user: User) => void;
   onCancel: () => void;
+  businessLoginTab?: 'login' | 'signup';
+  setBusinessLoginTab?: (tab: 'login' | 'signup') => void;
 }
 
-export function UserAuth({ onLogin, onCancel }: UserAuthProps) {
+export function UserAuth({ onLogin, onCancel, businessLoginTab, setBusinessLoginTab }: UserAuthProps) {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [signupName, setSignupName] = useState('');
   const [signupEmail, setSignupEmail] = useState('');
   const [signupPassword, setSignupPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,12 +30,15 @@ export function UserAuth({ onLogin, onCancel }: UserAuthProps) {
       return;
     }
     
+    setIsLoading(true);
     try {
       const response = await apiService.login(loginEmail, loginPassword);
-      onLogin(response.user.email, response.user.name, response.user.user_type);
-      toast.success(response.message);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Login failed');
+      toast.success(response.message || 'Successfully logged in!');
+      onLogin(response.user);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to log in. Please check your credentials.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -42,6 +49,7 @@ export function UserAuth({ onLogin, onCancel }: UserAuthProps) {
       return;
     }
     
+    setIsLoading(true);
     try {
       const response = await apiService.signup({
         name: signupName,
@@ -49,10 +57,12 @@ export function UserAuth({ onLogin, onCancel }: UserAuthProps) {
         password: signupPassword,
         user_type: 'user'
       });
-      onLogin(response.user.email, response.user.name, response.user.user_type);
-      toast.success(response.message);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Signup failed');
+      toast.success(response.message || 'Account created successfully!');
+      onLogin(response.user);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to create account. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -105,8 +115,10 @@ export function UserAuth({ onLogin, onCancel }: UserAuthProps) {
                     />
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                    <Button type="submit" className="flex-1 h-11">Login</Button>
-                    <Button type="button" variant="outline" onClick={onCancel} className="h-11">
+                    <Button type="submit" className="flex-1 h-11" disabled={isLoading}>
+                      {isLoading ? 'Logging in...' : 'Login'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={onCancel} className="h-11" disabled={isLoading}>
                       Cancel
                     </Button>
                   </div>
@@ -162,8 +174,10 @@ export function UserAuth({ onLogin, onCancel }: UserAuthProps) {
                     />
                   </div>
                   <div className="flex flex-col sm:flex-row gap-3 pt-2">
-                    <Button type="submit" className="flex-1 h-11">Sign Up</Button>
-                    <Button type="button" variant="outline" onClick={onCancel} className="h-11">
+                    <Button type="submit" className="flex-1 h-11" disabled={isLoading}>
+                      {isLoading ? 'Creating Account...' : 'Sign Up'}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={onCancel} className="h-11" disabled={isLoading}>
                       Cancel
                     </Button>
                   </div>

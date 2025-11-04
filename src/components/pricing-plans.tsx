@@ -2,9 +2,6 @@ import { ArrowLeft, Check, Star, TrendingUp, Zap } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
-import { Switch } from './ui/switch';
-import { Label } from './ui/label';
-import { useState } from 'react';
 
 interface PricingPlansProps {
   onBack: () => void;
@@ -12,84 +9,83 @@ interface PricingPlansProps {
 }
 
 export function PricingPlans({ onBack, onSelectPlan }: PricingPlansProps) {
-  const [isAnnual, setIsAnnual] = useState(false);
-
   const plans = [
     {
-      name: 'Basic',
+      name: '1 Month',
       icon: Star,
-      description: 'Perfect for small businesses just getting started',
-      monthlyPrice: 0,
-      annualPrice: 0,
+      description: 'Premium listing for one month',
+      price: 49,
+      duration: '1 month',
+      monthlyEquivalent: 49,
       features: [
-        'Basic business listing',
-        'Contact information display',
-        'Business hours',
-        'Up to 3 photos',
-        'Customer reviews',
-        'Search visibility',
-      ],
-      limitations: [
-        'No featured placement',
-        'No analytics',
-        'No deal posting',
-      ],
-      cta: 'Get Started',
-      popular: false,
-    },
-    {
-      name: 'Professional',
-      icon: TrendingUp,
-      description: 'Great for growing businesses seeking more visibility',
-      monthlyPrice: 49,
-      annualPrice: 470,
-      features: [
-        'Everything in Basic',
         'Featured business badge',
+        'Priority in search results',
         'Unlimited photos',
         'Post unlimited deals',
         'Basic analytics dashboard',
-        'Priority in search results',
         'Social media links',
         'Email support',
+        'Enhanced visibility',
       ],
-      limitations: [],
-      cta: 'Start Free Trial',
-      popular: true,
+      cta: 'Get Started',
+      popular: false,
+      savings: null,
     },
     {
-      name: 'Premium',
-      icon: Zap,
-      description: 'Maximum exposure and advanced features for established businesses',
-      monthlyPrice: 99,
-      annualPrice: 950,
+      name: '3 Months',
+      icon: TrendingUp,
+      description: 'Premium listing for three months',
+      price: 99,
+      duration: '3 months',
+      monthlyEquivalent: 33,
       features: [
-        'Everything in Professional',
+        'Everything in 1 Month',
+        'Save $48 compared to monthly',
+        'Extended premium visibility',
+        'Quarterly performance reports',
+        'Priority customer support',
+        'Featured placement longer',
+        'Better ROI on marketing',
+        'Consistent brand presence',
+      ],
+      cta: 'Best Value',
+      popular: true,
+      savings: '$48',
+    },
+    {
+      name: '1 Year',
+      icon: Zap,
+      description: 'Premium listing for twelve months',
+      price: 299,
+      duration: '12 months',
+      monthlyEquivalent: 24.92,
+      features: [
+        'Everything in 3 Months',
+        'Save $289 compared to monthly',
+        'Maximum annual exposure',
         'Top placement in category',
         'Advanced analytics & insights',
         'Featured on homepage',
         'Custom business profile URL',
-        'Priority customer support',
-        'Monthly performance reports',
-        'Remove competitor ads',
-        'API access',
+        'Dedicated account support',
+        'Annual performance review',
       ],
-      limitations: [],
-      cta: 'Start Free Trial',
+      cta: 'Maximum Savings',
       popular: false,
+      savings: '$289',
     },
   ];
 
   const enterprise = {
-    title: 'Enterprise',
-    description: 'Custom solutions for large businesses and chains',
+    title: 'Enterprise & Multi-Location',
+    description: 'Custom solutions for large businesses and franchise chains',
     features: [
       'Multi-location management',
       'Dedicated account manager',
       'Custom integrations',
       'White-label options',
       'Advanced reporting',
-      'Custom contract terms',
+      'Volume discounts available',
     ],
   };
 
@@ -103,25 +99,12 @@ export function PricingPlans({ onBack, onSelectPlan }: PricingPlansProps) {
 
         {/* Header */}
         <div className="text-center mb-12">
-          <h1 className="mb-4">Simple, Transparent Pricing</h1>
+          <h1 className="mb-4">Premium Listing Packages</h1>
           <p className="text-xl text-gray-600 mb-8">
-            Choose the perfect plan for your business needs
+            Get maximum visibility for your business with our premium listings
           </p>
-
-          {/* Billing Toggle */}
-          <div className="flex items-center justify-center gap-3">
-            <Label htmlFor="billing-toggle" className={!isAnnual ? '' : 'text-gray-500'}>
-              Monthly
-            </Label>
-            <Switch
-              id="billing-toggle"
-              checked={isAnnual}
-              onCheckedChange={setIsAnnual}
-            />
-            <Label htmlFor="billing-toggle" className={isAnnual ? '' : 'text-gray-500'}>
-              Annual
-            </Label>
-            <Badge variant="secondary" className="ml-2">Save up to 20%</Badge>
+          <div className="flex items-center justify-center gap-2">
+            <Badge variant="secondary" className="text-sm">Save up to 49% with annual plan</Badge>
           </div>
         </div>
 
@@ -129,8 +112,6 @@ export function PricingPlans({ onBack, onSelectPlan }: PricingPlansProps) {
         <div className="grid lg:grid-cols-3 gap-8 mb-12">
           {plans.map((plan) => {
             const Icon = plan.icon;
-            const price = isAnnual ? plan.annualPrice : plan.monthlyPrice;
-            const monthlyEquivalent = isAnnual ? (plan.annualPrice / 12).toFixed(0) : plan.monthlyPrice;
 
             return (
               <Card
@@ -141,7 +122,7 @@ export function PricingPlans({ onBack, onSelectPlan }: PricingPlansProps) {
               >
                 {plan.popular && (
                   <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                    <Badge className="bg-black text-white">Most Popular</Badge>
+                    <Badge className="bg-black text-white">Best Value</Badge>
                   </div>
                 )}
                 <CardHeader>
@@ -154,13 +135,18 @@ export function PricingPlans({ onBack, onSelectPlan }: PricingPlansProps) {
                   <CardDescription>{plan.description}</CardDescription>
                   <div className="mt-4">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-4xl">${monthlyEquivalent}</span>
-                      <span className="text-gray-500">/month</span>
+                      <span className="text-5xl font-bold">${plan.price}</span>
                     </div>
-                    {isAnnual && price > 0 && (
-                      <p className="text-sm text-gray-500 mt-1">
-                        Billed annually at ${price}
-                      </p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      {plan.duration} of premium listing
+                    </p>
+                    <p className="text-sm font-medium text-gray-700 mt-1">
+                      ${plan.monthlyEquivalent.toFixed(2)}/month
+                    </p>
+                    {plan.savings && (
+                      <Badge variant="secondary" className="mt-2">
+                        Save {plan.savings}
+                      </Badge>
                     )}
                   </div>
                 </CardHeader>
@@ -207,10 +193,10 @@ export function PricingPlans({ onBack, onSelectPlan }: PricingPlansProps) {
                 </Button>
               </div>
               <div className="bg-white/10 rounded-lg p-8 backdrop-blur">
-                <h3 className="text-white mb-4">Need a custom solution?</h3>
+                <h3 className="text-white mb-4">Multiple locations or custom needs?</h3>
                 <p className="text-gray-300 text-sm mb-4">
                   Our enterprise plans are tailored to your specific needs. Contact our sales team 
-                  to discuss volume discounts, custom features, and dedicated support.
+                  to discuss multi-location packages, volume discounts, and dedicated support.
                 </p>
                 <div className="space-y-2 text-sm">
                   <p className="text-gray-300">📧 enterprise@preferreddeals.com</p>
@@ -227,18 +213,17 @@ export function PricingPlans({ onBack, onSelectPlan }: PricingPlansProps) {
           <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             <Card>
               <CardContent className="p-6 text-left">
-                <h3 className="mb-2">Can I change plans later?</h3>
+                <h3 className="mb-2">Can I extend my premium listing?</h3>
                 <p className="text-sm text-gray-600">
-                  Yes! You can upgrade or downgrade your plan at any time. Changes take effect immediately, 
-                  and we'll prorate any charges.
+                  Yes! You can extend or upgrade your premium listing at any time. We'll apply any remaining time toward your new package.
                 </p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="p-6 text-left">
-                <h3 className="mb-2">Is there a free trial?</h3>
+                <h3 className="mb-2">What's included in premium listings?</h3>
                 <p className="text-sm text-gray-600">
-                  Professional and Premium plans include a 14-day free trial. No credit card required to start.
+                  All premium listings include featured placement, unlimited deals, analytics, and priority support for the duration of your package.
                 </p>
               </CardContent>
             </Card>

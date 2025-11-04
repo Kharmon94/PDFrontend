@@ -1,24 +1,53 @@
 import { useState, useEffect } from 'react';
-import { Search, Star, Tag, TrendingUp } from 'lucide-react';
+import { Search, Star, Tag, TrendingUp, MapPin } from 'lucide-react';
 import { Input } from './ui/input';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { BusinessCard } from './business-card';
 import { apiService } from '../services/api';
+import { Business } from '../types';
 import { toast } from 'sonner@2.0.3';
 
 interface DirectoryPageProps {
   onViewListing: (businessId: string) => void;
   initialCategory?: string;
+  initialLocation?: string;
 }
 
-export function DirectoryPage({ onViewListing, initialCategory }: DirectoryPageProps) {
+export function DirectoryPage({ onViewListing, initialCategory, initialLocation }: DirectoryPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory || null);
+  const [selectedLocation, setSelectedLocation] = useState<string>(initialLocation || 'all');
   const [activeTab, setActiveTab] = useState<string>('all');
-  const [businesses, setBusinesses] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch businesses from API
+  useEffect(() => {
+    const fetchBusinesses = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const data = await apiService.getBusinesses({
+          search: searchQuery || undefined,
+          category: (selectedCategory && selectedCategory !== 'All') ? selectedCategory : undefined,
+          featured: activeTab === 'featured' ? true : undefined,
+          deals: activeTab === 'deals' ? true : undefined
+        });
+        setBusinesses(data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load businesses');
+        toast.error('Failed to load businesses. Please try again.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchBusinesses();
+  }, [searchQuery, selectedCategory, activeTab]);
 
   // Update selected category when initialCategory prop changes
   useEffect(() => {
@@ -31,30 +60,12 @@ export function DirectoryPage({ onViewListing, initialCategory }: DirectoryPageP
     }
   }, [initialCategory]);
 
-  // Load businesses from API
+  // Update selected location when initialLocation prop changes
   useEffect(() => {
-    loadBusinesses();
-  }, [searchQuery, selectedCategory, activeTab]);
-
-  const loadBusinesses = async () => {
-    try {
-      setLoading(true);
-      const params: any = {};
-      
-      if (searchQuery) params.search = searchQuery;
-      if (selectedCategory && selectedCategory !== 'All') params.category = selectedCategory;
-      if (activeTab === 'featured') params.featured = true;
-      if (activeTab === 'deals') params.deals = true;
-      
-      const data = await apiService.getBusinesses(params);
-      setBusinesses(data);
-    } catch (error) {
-      toast.error('Failed to load businesses');
-      console.error('Error loading businesses:', error);
-    } finally {
-      setLoading(false);
+    if (initialLocation) {
+      setSelectedLocation(initialLocation);
     }
-  };
+  }, [initialLocation]);
 
   const categories = [
     'All',
@@ -66,32 +77,80 @@ export function DirectoryPage({ onViewListing, initialCategory }: DirectoryPageP
     'Entertainment',
   ];
 
-  const filteredBusinesses = businesses;
-  const featuredBusinesses = businesses.filter((b) => b.featured);
-  const dealsBusinesses = businesses.filter((b) => b.has_deals);
+  // Get unique cities from businesses (extract from address field)
+  const cities = Array.from(
+    new Set(
+      businesses
+        .map(b => {
+          // Extract city from address (assuming format like "123 Street, City, State ZIP")
+          const parts = b.address.split(',');
+          return parts.length > 1 ? parts[1].trim() : null;
+        })
+        .filter((city): city is string => Boolean(city))
+    )
+  ).sort();
+
+  // Filter businesses by location if needed (already filtered by API for search/category/featured/deals)
+  const filteredBusinesses = selectedLocation === 'all' 
+    ? businesses 
+    : businesses.filter((business) => {
+        const businessCity = business.address.split(',')[1]?.trim();
+        return businessCity === selectedLocation;
+      });
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="mb-2 text-[rgb(0,0,0)]">Discover Local Businesses</h1>
-        <p className="text-muted-foreground">
-          Browse through our curated directory of trusted local businesses
-        </p>
+        <h1 className="mb-4">All Listings</h1>
       </div>
 
-      {/* Search Bar */}
+      {/* Search Bar with Location Filter */}
       <div className="mb-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-          <Input
-            type="text"
-            placeholder="Search businesses..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
+            <Input
+              type="text"
+              placeholder="Search businesses..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="w-full sm:w-64">
+            <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+              <SelectTrigger className="w-full">
+                <div className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4" />
+                  <SelectValue placeholder="All Locations" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Locations</SelectItem>
+                {cities.map((city) => (
+                  <SelectItem key={city} value={city}>
+                    {city}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+        {selectedLocation !== 'all' && (
+          <div className="mt-3">
+            <Badge variant="secondary" className="gap-1">
+              <MapPin className="w-3 h-3" />
+              {selectedLocation}
+              <button
+                onClick={() => setSelectedLocation('all')}
+                className="ml-1 hover:bg-black/10 rounded-full p-0.5"
+              >
+                ×
+              </button>
+            </Badge>
+          </div>
+        )}
       </div>
 
       {/* Category Filter */}
@@ -128,59 +187,76 @@ export function DirectoryPage({ onViewListing, initialCategory }: DirectoryPageP
         </TabsList>
 
         <TabsContent value="all">
-          {loading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Loading businesses...
-            </div>
-          ) : (
+          {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredBusinesses.map((business) => (
-                <BusinessCard key={business.id} business={business} onClick={() => onViewListing(business.id)} />
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-64 bg-muted animate-pulse rounded-lg"></div>
               ))}
             </div>
-          )}
-          {!loading && filteredBusinesses.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              No businesses found matching your criteria
+          ) : error ? (
+            <div className="text-center py-12">
+              <p className="text-destructive mb-4">{error}</p>
+              <Button onClick={() => window.location.reload()}>Retry</Button>
             </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredBusinesses.map((business) => (
+                  <BusinessCard key={business.id} business={business} onClick={() => onViewListing(String(business.id))} />
+                ))}
+              </div>
+              {filteredBusinesses.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  No businesses found matching your criteria
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 
         <TabsContent value="featured">
-          {loading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Loading featured businesses...
-            </div>
-          ) : (
+          {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {featuredBusinesses.map((business) => (
-                <BusinessCard key={business.id} business={business} onClick={() => onViewListing(business.id)} />
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-64 bg-muted animate-pulse rounded-lg"></div>
               ))}
             </div>
-          )}
-          {!loading && featuredBusinesses.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              No featured businesses available
-            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredBusinesses.map((business) => (
+                  <BusinessCard key={business.id} business={business} onClick={() => onViewListing(String(business.id))} />
+                ))}
+              </div>
+              {filteredBusinesses.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  No featured businesses available
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 
         <TabsContent value="deals">
-          {loading ? (
-            <div className="text-center py-12 text-muted-foreground">
-              Loading deals...
-            </div>
-          ) : (
+          {isLoading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {dealsBusinesses.map((business) => (
-                <BusinessCard key={business.id} business={business} onClick={() => onViewListing(business.id)} />
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="h-64 bg-muted animate-pulse rounded-lg"></div>
               ))}
             </div>
-          )}
-          {!loading && dealsBusinesses.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground">
-              No deals available at the moment
-            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredBusinesses.map((business) => (
+                  <BusinessCard key={business.id} business={business} onClick={() => onViewListing(String(business.id))} />
+                ))}
+              </div>
+              {filteredBusinesses.length === 0 && (
+                <div className="text-center py-12 text-muted-foreground">
+                  No deals available at the moment
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
       </Tabs>

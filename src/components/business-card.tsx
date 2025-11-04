@@ -2,21 +2,7 @@ import { MapPin, Phone, Star, Tag } from 'lucide-react';
 import { Card, CardContent, CardHeader } from './ui/card';
 import { Badge } from './ui/badge';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-
-interface Business {
-  id: string;
-  name: string;
-  category: string;
-  description: string;
-  address: string;
-  phone: string;
-  rating: number;
-  reviewCount: number;
-  image: string;
-  featured: boolean;
-  hasDeals: boolean;
-  deal?: string;
-}
+import { Business } from '../types';
 
 interface BusinessCardProps {
   business: Business;
@@ -24,11 +10,14 @@ interface BusinessCardProps {
 }
 
 export function BusinessCard({ business, onClick }: BusinessCardProps) {
+  // Extract city from address for display
+  const city = business.address.split(',')[1]?.trim() || '';
+  
   return (
     <Card className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer" onClick={onClick}>
       <div className="relative">
         <ImageWithFallback
-          src={business.image}
+          src={business.image || ''}
           alt={business.name}
           className="w-full h-48 object-cover"
         />
@@ -38,7 +27,7 @@ export function BusinessCard({ business, onClick }: BusinessCardProps) {
             Featured
           </Badge>
         )}
-        {business.hasDeals && business.deal && (
+        {business.has_deals && business.deal && (
           <Badge className="absolute top-2 left-2 bg-destructive hover:bg-destructive/90">
             <Tag className="w-3 h-3 mr-1" />
             Deal
@@ -54,14 +43,14 @@ export function BusinessCard({ business, onClick }: BusinessCardProps) {
           <div className="flex items-center gap-1">
             <Star className="w-4 h-4 fill-current" />
             <span className="text-sm">{business.rating}</span>
-            <span className="text-xs text-muted-foreground">({business.reviewCount})</span>
+            <span className="text-xs text-muted-foreground">({business.review_count})</span>
           </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
         <p className="text-sm text-muted-foreground">{business.description}</p>
         
-        {business.hasDeals && business.deal && (
+        {business.has_deals && business.deal && (
           <div className="bg-destructive/10 border border-destructive/20 rounded-md p-2">
             <p className="text-sm text-destructive">{business.deal}</p>
           </div>
@@ -70,12 +59,17 @@ export function BusinessCard({ business, onClick }: BusinessCardProps) {
         <div className="space-y-2 text-sm text-muted-foreground">
           <div className="flex items-start gap-2">
             <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-            <span>{business.address}</span>
+            <div>
+              <div>{business.address}</div>
+              {city && <div className="text-xs">{city}</div>}
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Phone className="w-4 h-4" />
-            <span>{business.phone}</span>
-          </div>
+          {business.phone && (
+            <div className="flex items-center gap-2">
+              <Phone className="w-4 h-4" />
+              <span>{business.phone}</span>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

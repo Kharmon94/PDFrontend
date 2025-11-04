@@ -1,13 +1,14 @@
 import { useState } from 'react';
-import { Building2, Image, MapPin, Phone, Mail, FileText, ArrowLeft } from 'lucide-react';
+import { Building2, Image, MapPin, Phone, Mail, FileText, ArrowLeft, Check, Star, Sparkles, Gift } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { Switch } from './ui/switch';
+import { Badge } from './ui/badge';
 import { toast } from 'sonner@2.0.3';
-import { apiService } from '../services/api';
 
 interface BecomePartnerProps {
   onSignupComplete: (businessId: string) => void;
@@ -25,90 +26,218 @@ export function BecomePartner({ onSignupComplete, onBack }: BecomePartnerProps) 
     website: '',
     imageUrl: '',
   });
+  const [isAnnual, setIsAnnual] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    try {
-      const businessData = {
-        name: formData.businessName,
-        category: formData.category,
-        description: formData.description,
-        address: formData.address,
-        phone: formData.phone,
-        email: formData.email,
-        website: formData.website,
-        image_url: formData.imageUrl,
-        rating: 0,
-        review_count: 0,
-        featured: false,
-        has_deals: false,
-        hours: {},
-        amenities: [],
-        gallery: []
-      };
-      
-      const response = await apiService.createBusiness(businessData);
-      
-      toast.success('Success! Your business listing has been created.', {
-        description: 'You can now manage your listing from the dashboard.',
-      });
-      
-      onSignupComplete(response.id);
-    } catch (error) {
-      toast.error('Failed to create business listing');
-    }
+    // Simulate creating a business listing
+    const businessId = `biz-${Date.now()}`;
+    
+    toast('Success! Your business listing has been created.', {
+      description: 'You can now manage your listing from the dashboard.',
+    });
+    
+    onSignupComplete(businessId);
   };
 
   const handleChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const monthlyPrice = 49;
+  const annualPrice = monthlyPrice * 10; // 10 months price for 12 months
+  const annualMonthlyEquivalent = annualPrice / 12;
+
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {onBack && (
         <Button variant="ghost" onClick={onBack} className="mb-6">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Dashboard
         </Button>
       )}
-      <div className="mb-8">
-        <h1 className="mb-2">Become a Partner</h1>
-        <p className="text-muted-foreground">
-          Join our directory and connect with thousands of local customers
+      
+      {/* Hero Section */}
+      <div className="text-center mb-12">
+        <div className="inline-flex items-center gap-2 px-4 py-2 bg-black text-white rounded-full mb-4">
+          <Gift className="w-4 h-4" />
+          <span className="text-sm">Join FREE & Get Branded NFC Stands</span>
+        </div>
+        <h1 className="mb-4">Become a Partner</h1>
+        <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
+          Join the NFC-Powered Word Of Mouth Deal Network and connect with thousands of local customers. 
+          Start for free and receive complimentary Preferred Deals branded NFC stands for your business.
         </p>
       </div>
 
-      {/* Benefits Section */}
-      <div className="grid md:grid-cols-3 gap-6 mb-8">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Increased Visibility</CardTitle>
+      {/* Free Plan Highlight */}
+      <Card className="mb-12 border-2 border-black">
+        <CardContent className="p-8">
+          <div className="flex items-start gap-6">
+            <div className="flex-shrink-0 p-4 bg-black text-white rounded-lg">
+              <Gift className="w-8 h-8" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-2">
+                <h2 className="m-0">Free Partner Program</h2>
+                <Badge className="bg-green-600">Always Free</Badge>
+              </div>
+              <p className="text-muted-foreground mb-4">
+                Get started at no cost and receive branded NFC stands to showcase your business
+              </p>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="flex gap-2">
+                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm">Basic business listing</span>
+                </div>
+                <div className="flex gap-2">
+                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm">Free Preferred Deals NFC stands</span>
+                </div>
+                <div className="flex gap-2">
+                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm">Up to 5 photos</span>
+                </div>
+                <div className="flex gap-2">
+                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm">Post deals & offers</span>
+                </div>
+                <div className="flex gap-2">
+                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm">Contact information display</span>
+                </div>
+                <div className="flex gap-2">
+                  <Check className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm">Basic analytics</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Premium Plans Section */}
+      <div className="mb-12">
+        <div className="text-center mb-8">
+          <h2 className="mb-4">Upgrade to Premium</h2>
+          <p className="text-muted-foreground mb-6">
+            Get featured placement, unlimited photos, and advanced analytics
+          </p>
+          
+          {/* Pricing Toggle */}
+          <div className="inline-flex items-center gap-4 p-2 bg-gray-100 rounded-lg">
+            <span className={`text-sm transition-colors ${!isAnnual ? 'font-semibold' : 'text-muted-foreground'}`}>
+              Monthly
+            </span>
+            <Switch
+              checked={isAnnual}
+              onCheckedChange={setIsAnnual}
+              className="data-[state=checked]:bg-black"
+            />
+            <span className={`text-sm transition-colors ${isAnnual ? 'font-semibold' : 'text-muted-foreground'}`}>
+              Annual
+            </span>
+            {isAnnual && (
+              <Badge variant="secondary" className="ml-2">
+                Save 2 Months
+              </Badge>
+            )}
+          </div>
+        </div>
+
+        {/* Premium Plan Card */}
+        <Card className="max-w-2xl mx-auto border-2 border-gray-200">
+          <CardHeader className="text-center pb-8">
+            <div className="flex justify-center mb-4">
+              <div className="p-3 bg-black text-white rounded-lg">
+                <Star className="w-6 h-6" />
+              </div>
+            </div>
+            <CardTitle className="text-2xl mb-2">Premium Listing</CardTitle>
+            <CardDescription>
+              Maximum visibility and advanced features for your business
+            </CardDescription>
+            
+            {/* Pricing Display */}
+            <div className="mt-6">
+              {isAnnual ? (
+                <>
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-5xl font-bold">${annualPrice}</span>
+                    <span className="text-muted-foreground">/year</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Equivalent to ${annualMonthlyEquivalent.toFixed(2)}/month
+                  </p>
+                  <Badge variant="secondary" className="mt-3">
+                    Save ${monthlyPrice * 2} compared to monthly
+                  </Badge>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-5xl font-bold">${monthlyPrice}</span>
+                    <span className="text-muted-foreground">/month</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Billed monthly
+                  </p>
+                </>
+              )}
+            </div>
           </CardHeader>
+          
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Get discovered by customers actively searching for your services
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Analytics Dashboard</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Track views, clicks, and engagement with detailed analytics
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Featured Listings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Upgrade to featured status and appear at the top of search results
-            </p>
+            <div className="space-y-3 mb-6">
+              <div className="flex gap-3">
+                <Check className="w-5 h-5 text-black flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium">Everything in Free Plan</p>
+                  <p className="text-sm text-muted-foreground">Plus all premium features below</p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <Check className="w-5 h-5 text-black flex-shrink-0 mt-0.5" />
+                <span>Featured business badge</span>
+              </div>
+              <div className="flex gap-3">
+                <Check className="w-5 h-5 text-black flex-shrink-0 mt-0.5" />
+                <span>Priority in search results</span>
+              </div>
+              <div className="flex gap-3">
+                <Check className="w-5 h-5 text-black flex-shrink-0 mt-0.5" />
+                <span>Unlimited photos & media</span>
+              </div>
+              <div className="flex gap-3">
+                <Check className="w-5 h-5 text-black flex-shrink-0 mt-0.5" />
+                <span>Post unlimited deals</span>
+              </div>
+              <div className="flex gap-3">
+                <Check className="w-5 h-5 text-black flex-shrink-0 mt-0.5" />
+                <span>Advanced analytics dashboard</span>
+              </div>
+              <div className="flex gap-3">
+                <Check className="w-5 h-5 text-black flex-shrink-0 mt-0.5" />
+                <span>Social media integration</span>
+              </div>
+              <div className="flex gap-3">
+                <Check className="w-5 h-5 text-black flex-shrink-0 mt-0.5" />
+                <span>Priority customer support</span>
+              </div>
+              <div className="flex gap-3">
+                <Check className="w-5 h-5 text-black flex-shrink-0 mt-0.5" />
+                <span>Featured on homepage</span>
+              </div>
+              <div className="flex gap-3">
+                <Sparkles className="w-5 h-5 text-black flex-shrink-0 mt-0.5" />
+                <span>Enhanced NFC stand options available</span>
+              </div>
+            </div>
+
+            <Button className="w-full bg-black">
+              Upgrade to Premium
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -118,7 +247,7 @@ export function BecomePartner({ onSignupComplete, onBack }: BecomePartnerProps) 
         <CardHeader>
           <CardTitle>Create Your Business Listing</CardTitle>
           <CardDescription>
-            Fill out the form below to create your business profile
+            Fill out the form below to get started for free
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -256,7 +385,7 @@ export function BecomePartner({ onSignupComplete, onBack }: BecomePartnerProps) 
             </div>
 
             <Button type="submit" className="w-full bg-[rgb(0,0,0)]">
-              Create Business Listing
+              Create Free Business Listing
             </Button>
           </form>
         </CardContent>

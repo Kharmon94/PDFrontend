@@ -1,199 +1,142 @@
-import { Building2, Mail, Phone, MapPin, Facebook, Twitter, Instagram, Linkedin, Users, Handshake } from 'lucide-react';
+import { Building2, Mail, Facebook, Twitter, Instagram, Linkedin, Users, Handshake, Clock } from 'lucide-react';
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
 import logoImage from 'figma:asset/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
-import logoDarkImage from 'figma:asset/086e1f0668410f07828122542aa5c045739f737a.png';
 
-type Page = 'directory' | 'become-partner' | 'dashboard' | 'distribution-partner' | 'about' | 'pricing' | 'help' | 'terms' | 'privacy' | 'cookies';
+type Page = 'home' | 'directory' | 'list-your-business' | 'manage-your-listing' | 'become-partner' | 'distribution-partner' | 'partner-dashboard-login' | 'about' | 'contact-us' | 'terms' | 'privacy' | 'cookies';
 
 interface FooterProps {
   onNavigate: (page: Page) => void;
-  isDarkMode?: boolean;
 }
 
-export function Footer({ onNavigate, isDarkMode }: FooterProps) {
+export function Footer({ onNavigate }: FooterProps) {
   const currentYear = new Date().getFullYear();
 
+  const handleNavigate = (page: Page) => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    onNavigate(page);
+  };
+
   return (
-    <footer className="bg-[rgb(2,2,2)] dark:bg-card text-gray-300 dark:text-card-foreground mt-auto">
+    <footer className="bg-[rgb(2,2,2)] text-gray-300 mt-auto">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Partner CTAs */}
-        <div className="bg-gradient-to-r from-gray-800 to-gray-900 dark:from-muted dark:to-accent rounded-lg p-8 mb-12 border border-gray-700 dark:border-border">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Building2 className="w-6 h-6" />
-                <h3 className="text-white dark:text-foreground text-lg">Business Partners</h3>
-              </div>
-              <p className="text-sm">
-                Join our network and reach thousands of local customers. List your business and start growing today.
-              </p>
-              <Button 
-                onClick={() => onNavigate('become-partner')} 
-                className="bg-white hover:bg-gray-100 text-black dark:bg-primary dark:hover:bg-primary/90 dark:text-primary-foreground"
-              >
-                <Users className="w-4 h-4 mr-2" />
-                Become a Partner
-              </Button>
-            </div>
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <Handshake className="w-6 h-6" />
-                <h3 className="text-white dark:text-foreground text-lg">Distribution Partners</h3>
-              </div>
-              <p className="text-sm">
-                Help us expand our reach in your community. Partner with us to bring local deals to more people.
-              </p>
-              <Button 
-                onClick={() => onNavigate('distribution-partner')} 
-                className="bg-white hover:bg-gray-100 text-black dark:bg-primary dark:hover:bg-primary/90 dark:text-primary-foreground"
-              >
-                <Handshake className="w-4 h-4 mr-2" />
-                Partner With Us
-              </Button>
-            </div>
-          </div>
-        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
-            <img src={isDarkMode ? logoDarkImage : logoImage} alt="Preferred Deals" className={`h-10 ${!isDarkMode ? 'brightness-0 invert' : ''}`} />
+            <button onClick={() => handleNavigate('home')} className="flex items-center">
+              <img src={logoImage} alt="Preferred Deals" className="h-10 brightness-0 invert" />
+            </button>
             <p className="text-sm">
               Connecting local businesses with their communities. Discover the best deals and services in your area.
             </p>
-            <div className="flex gap-4">
-              <a href="#" className="hover:text-foreground transition-colors">
-                <Facebook className="w-5 h-5" />
-              </a>
-              <a href="#" className="hover:text-foreground transition-colors">
-                <Twitter className="w-5 h-5" />
-              </a>
-              <a href="#" className="hover:text-foreground transition-colors">
-                <Instagram className="w-5 h-5" />
-              </a>
-              <a href="#" className="hover:text-foreground transition-colors">
-                <Linkedin className="w-5 h-5" />
-              </a>
-            </div>
           </div>
 
-          {/* Quick Links */}
+          {/* For Businesses */}
           <div>
-            <h3 className="text-white dark:text-foreground mb-4">Quick Links</h3>
+            <h3 className="text-white mb-4">For Businesses</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <button
-                  onClick={() => onNavigate('directory')}
-                  className="hover:text-foreground transition-colors"
+                  onClick={() => handleNavigate('list-your-business')}
+                  className="hover:text-white transition-colors"
                 >
-                  Browse Directory
+                  List Your Business
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => onNavigate('become-partner')}
-                  className="hover:text-foreground transition-colors"
+                  onClick={() => handleNavigate('manage-your-listing')}
+                  className="hover:text-white transition-colors"
+                >
+                  Manage Your Listing
+                </button>
+              </li>
+            </ul>
+          </div>
+
+          {/* For Partners */}
+          <div>
+            <h3 className="text-white mb-4">For Partners</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <button
+                  onClick={() => handleNavigate('distribution-partner')}
+                  className="hover:text-white transition-colors"
                 >
                   Become a Partner
                 </button>
               </li>
               <li>
                 <button
-                  onClick={() => onNavigate('distribution-partner')}
-                  className="hover:text-foreground transition-colors"
+                  onClick={() => handleNavigate('partner-dashboard-login')}
+                  className="hover:text-white transition-colors"
                 >
-                  Distribution Partners
+                  Partner Dashboard
                 </button>
               </li>
+            </ul>
+          </div>
+
+          {/* Company */}
+          <div>
+            <h3 className="text-white mb-4">Company</h3>
+            <ul className="space-y-3 text-sm">
               <li>
                 <button
-                  onClick={() => onNavigate('about')}
-                  className="hover:text-foreground transition-colors"
+                  onClick={() => handleNavigate('about')}
+                  className="hover:text-white transition-colors"
                 >
                   About Us
                 </button>
               </li>
-            </ul>
-          </div>
-
-          {/* Business Resources */}
-          <div>
-            <h3 className="text-white dark:text-foreground mb-4">For Businesses</h3>
-            <ul className="space-y-2 text-sm">
               <li>
                 <button
-                  onClick={() => onNavigate('pricing')}
-                  className="hover:text-foreground transition-colors"
+                  onClick={() => handleNavigate('contact-us')}
+                  className="hover:text-white transition-colors"
                 >
-                  Pricing Plans
+                  Contact Us
                 </button>
               </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Success Stories
-                </a>
+              <li className="pt-2">
+                <div className="flex items-center gap-2 text-xs">
+                  <Mail className="w-4 h-4 flex-shrink-0" />
+                  <a href="mailto:info@preferred.deals" className="hover:text-white transition-colors">
+                    info@preferred.deals
+                  </a>
+                </div>
               </li>
-              <li>
-                <a href="#" className="hover:text-foreground transition-colors">
-                  Marketing Resources
-                </a>
-              </li>
-              <li>
-                <button
-                  onClick={() => onNavigate('help')}
-                  className="hover:text-foreground transition-colors"
-                >
-                  Help Center
-                </button>
-              </li>
-            </ul>
-          </div>
-
-          {/* Contact Info */}
-          <div>
-            <h3 className="text-white dark:text-foreground mb-4">Contact Us</h3>
-            <ul className="space-y-3 text-sm">
-              <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                <span>123 Business Ave, Suite 100<br />City, State 12345</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4 flex-shrink-0" />
-                <a href="tel:+15551234567" className="hover:text-foreground transition-colors">
-                  (555) 123-4567
-                </a>
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail className="w-4 h-4 flex-shrink-0" />
-                <a href="mailto:info@preferreddeals.com" className="hover:text-foreground transition-colors">
-                  info@preferreddeals.com
-                </a>
+              <li className="flex items-start gap-2 text-xs">
+                <Clock className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-white">Support Hours</p>
+                  <p>Mon-Fri: 8am-5pm MT</p>
+                </div>
               </li>
             </ul>
           </div>
         </div>
 
-        <Separator className="my-8 bg-gray-700 dark:bg-border" />
+        <Separator className="my-8 bg-gray-700" />
 
         {/* Bottom Bar */}
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm">
           <p>&copy; {currentYear} Preferred Deals. All rights reserved.</p>
           <div className="flex gap-6">
             <button
-              onClick={() => onNavigate('privacy')}
-              className="hover:text-foreground transition-colors"
+              onClick={() => handleNavigate('privacy')}
+              className="hover:text-white transition-colors"
             >
               Privacy Policy
             </button>
             <button
-              onClick={() => onNavigate('terms')}
-              className="hover:text-foreground transition-colors"
+              onClick={() => handleNavigate('terms')}
+              className="hover:text-white transition-colors"
             >
               Terms of Service
             </button>
             <button
-              onClick={() => onNavigate('cookies')}
-              className="hover:text-foreground transition-colors"
+              onClick={() => handleNavigate('cookies')}
+              className="hover:text-white transition-colors"
             >
               Cookie Policy
             </button>
