@@ -162,8 +162,6 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
     );
   }
 
-  const distributors: any[] = [];
-
   const handleUserAction = (user: any, mode: 'view' | 'edit' | 'suspend') => {
     setSelectedUser(user);
     setUserDialogMode(mode);
@@ -234,12 +232,7 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
     handleCloseBusinessDialog();
   };
 
-  const handleDeleteBusiness = () => {
-    // Handle delete logic here
-    handleCloseBusinessDialog();
-  };
-
-  const handleLocationAction = (location: typeof locations[0], mode: 'view' | 'edit' | 'delete') => {
+  const handleLocationAction = (location: any, mode: 'view' | 'edit' | 'delete') => {
     setSelectedLocation(location);
     setLocationDialogMode(mode);
   };
