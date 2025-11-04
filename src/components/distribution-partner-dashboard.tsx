@@ -1,4 +1,3 @@
-import { WhiteLabelPlatform } from './white-label-platform-new';
 import { useState } from 'react';
 import { Users, Award, DollarSign, TrendingUp, Copy, CheckCircle, Share2, Gift, Globe, ArrowRight, MapPin, Package, BarChart3, Eye, Search, Map, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
@@ -15,7 +14,6 @@ interface DistributionPartnerDashboardProps {
 }
 
 export function DistributionPartnerDashboard({ userName }: DistributionPartnerDashboardProps) {
-  const [showWhiteLabel, setShowWhiteLabel] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<typeof partnerLocations[0] | null>(null);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
@@ -61,10 +59,6 @@ export function DistributionPartnerDashboard({ userName }: DistributionPartnerDa
       status: 'Active',
     },
   ];
-
-  if (showWhiteLabel) {
-    return <WhiteLabelPlatform onBack={() => setShowWhiteLabel(false)} partnerName={userName} />;
-  }
 
   const recentReferrals = [
     { id: 1, business: 'Green Leaf Cafe', owner: 'Sarah Chen', status: 'Active', commission: 50, joinDate: 'Oct 20, 2025', plan: 'Premium' },
@@ -247,7 +241,7 @@ export function DistributionPartnerDashboard({ userName }: DistributionPartnerDa
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button className="flex-1" onClick={() => setShowWhiteLabel(true)}>
+                <Button className="flex-1" onClick={() => toast.info('White-label platform configuration coming soon!')}>
                   <Globe className="w-4 h-4 mr-2" />
                   <span className="text-sm">Manage Platform</span>
                   <ArrowRight className="w-4 h-4 ml-2" />
