@@ -1,4 +1,4 @@
-import { ArrowRight, MapPin, Search, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { BusinessCard } from './business-card';
@@ -10,7 +10,7 @@ import {
   CarouselPrevious,
 } from './ui/carousel';
 import { useEffect, useState } from 'react';
-import { Input } from './ui/input';
+import { SearchAutocomplete } from './ui/search-autocomplete';
 import { apiService } from '../services/api';
 import { Business } from '../types';
 
@@ -120,16 +120,16 @@ export function HomePage({ onNavigate, onViewListing }: HomePageProps) {
           
           {/* Search Bar */}
           <form onSubmit={handleSearch} className="max-w-2xl mx-auto">
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-              <Input
-                type="text"
-                placeholder="Search for businesses, services, or deals..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-6 text-black rounded-lg border-0"
-              />
-            </div>
+            <SearchAutocomplete
+              value={searchQuery}
+              onChange={setSearchQuery}
+              onSelect={(suggestion) => {
+                setSearchQuery(suggestion.name);
+                onNavigate('directory', suggestion.category);
+              }}
+              placeholder="Search for businesses, services, or deals..."
+              className="w-full"
+            />
           </form>
         </div>
       </section>

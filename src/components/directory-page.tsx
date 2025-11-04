@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Search, Star, Tag, TrendingUp, MapPin } from 'lucide-react';
-import { Input } from './ui/input';
+import { Star, Tag, TrendingUp, MapPin } from 'lucide-react';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
+import { SearchAutocomplete } from './ui/search-autocomplete';
 import { BusinessCard } from './business-card';
 import { apiService } from '../services/api';
 import { Business } from '../types';
@@ -108,14 +108,12 @@ export function DirectoryPage({ onViewListing, initialCategory, initialLocation 
       {/* Search Bar with Location Filter */}
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-5 h-5" />
-            <Input
-              type="text"
-              placeholder="Search businesses..."
+          <div className="flex-1">
+            <SearchAutocomplete
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              onChange={setSearchQuery}
+              placeholder="Search businesses, deals, locations..."
+              className="w-full"
             />
           </div>
           <div className="w-full sm:w-64">

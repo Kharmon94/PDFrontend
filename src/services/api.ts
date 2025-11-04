@@ -112,6 +112,15 @@ class ApiService {
     return this.request(`/businesses/${id}`);
   }
 
+  async getBusinessAutocomplete(query: string): Promise<Array<{
+    name: string;
+    category: string;
+    location: string;
+  }>> {
+    if (!query || query.length < 2) return [];
+    return this.request(`/businesses/autocomplete?query=${encodeURIComponent(query)}`);
+  }
+
   async createBusiness(businessData: any): Promise<Business> {
     return this.request('/businesses', {
       method: 'POST',
