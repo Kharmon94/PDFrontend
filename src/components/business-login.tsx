@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
 import logoImage from 'figma:asset/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
+import { apiService } from '../services/api';
+import { toast } from 'sonner@2.0.3';
 
 interface BusinessLoginProps {
   onBack: () => void;
@@ -17,6 +19,10 @@ interface BusinessLoginProps {
 export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: BusinessLoginProps) {
   const [showPassword, setShowPassword] = useState(false);
   const [signupStep, setSignupStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [password, setPassword] = useState('');
   const [signupData, setSignupData] = useState({
     fullName: '',
     businessName: '',
@@ -33,9 +39,24 @@ export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: Busines
     listingDuration: '30' as '30' | '90' | 'annual',
   });
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onLogin();
+    setIsLoading(true);
+    
+    try {
+      const response = await apiService.login(loginEmail, loginPassword);
+      if (response.user.user_type === 'partner' || response.user.user_type === 'admin') {
+        toast.success('Welcome back!');
+        onLogin();
+      } else {
+        toast.error('This login is for business partners only');
+        apiService.logout();
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSignupNext = (e: React.FormEvent) => {
@@ -52,10 +73,42 @@ export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: Busines
     setSignupStep(signupStep - 1);
   };
 
-  const handleSignupSubmit = (e: React.FormEvent) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would create the account then log in
-    onLogin();
+    setIsLoading(true);
+    
+    try {
+      // Create partner account
+      const authResponse = await apiService.signup({
+        name: signupData.fullName,
+        email: signupData.email,
+        password: password,
+        user_type: 'partner'
+      });
+      
+      toast.success('Account created! Creating your business...');
+      
+      // Create the business listing
+      await apiService.createBusiness({
+        name: signupData.businessName,
+        category: signupData.category,
+        description: signupData.offerDetails || 'No description provided',
+        address: signupData.serviceArea || 'Not specified',
+        phone: signupData.phone,
+        email: signupData.email,
+        website: signupData.website || undefined,
+        has_deals: signupData.listingType === 'paid',
+        deal_description: signupData.offerTitle || undefined,
+        featured: signupData.listingType === 'paid'
+      });
+      
+      toast.success('Business created successfully!');
+      onLogin();
+    } catch (error: any) {
+      toast.error(error.message || 'Signup failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const updateSignupData = (field: string, value: string) => {
@@ -125,6 +178,8 @@ export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: Busines
                       id="login-email"
                       type="email"
                       placeholder="Enter your email"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
                       required
                       className="pl-10 h-12"
                     />
@@ -139,6 +194,8 @@ export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: Busines
                       id="login-password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
                       required
                       className="pl-10 pr-10 h-12"
                     />
@@ -162,8 +219,8 @@ export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: Busines
                   </button>
                 </div>
 
-                <Button type="submit" className="w-full h-12 text-base bg-black hover:bg-gray-800">
-                  Log In
+                <Button type="submit" className="w-full h-12 text-base bg-black hover:bg-gray-800" disabled={isLoading}>
+                  {isLoading ? 'Logging in...' : 'Log In'}
                 </Button>
               </form>
 
@@ -235,6 +292,20 @@ export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: Busines
                         value={signupData.email}
                         onChange={(e) => updateSignupData('email', e.target.value)}
                         required
+                        className="h-12 bg-gray-50 border-0 border-b-2 border-gray-200 rounded-none focus-visible:ring-0 focus-visible:border-black"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="password">Password *</Label>
+                      <Input
+                        id="password"
+                        type="password"
+                        placeholder="Create a secure password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
                         className="h-12 bg-gray-50 border-0 border-b-2 border-gray-200 rounded-none focus-visible:ring-0 focus-visible:border-black"
                       />
                     </div>

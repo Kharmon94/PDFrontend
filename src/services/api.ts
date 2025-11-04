@@ -171,6 +171,143 @@ class ApiService {
       body: JSON.stringify({ business_id: businessId }),
     });
   }
+
+  // Admin methods
+  async getAdminStats(): Promise<any> {
+    return this.request('/admin/stats');
+  }
+
+  async getAdminUsers(params: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    user_type?: string;
+  } = {}): Promise<{ users: any[]; pagination: any }> {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.per_page) queryParams.append('per_page', params.per_page.toString());
+    if (params.search) queryParams.append('search', params.search);
+    if (params.user_type) queryParams.append('user_type', params.user_type);
+
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/admin/users?${queryString}` : '/admin/users';
+    return this.request(endpoint);
+  }
+
+  async getAdminBusinesses(params: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    category?: string;
+    featured?: boolean;
+  } = {}): Promise<{ businesses: Business[]; pagination: any }> {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.per_page) queryParams.append('per_page', params.per_page.toString());
+    if (params.search) queryParams.append('search', params.search);
+    if (params.category) queryParams.append('category', params.category);
+    if (params.featured !== undefined) queryParams.append('featured', params.featured.toString());
+
+    const queryString = queryParams.toString();
+    const endpoint = queryString ? `/admin/businesses?${queryString}` : '/admin/businesses';
+    return this.request(endpoint);
+  }
+
+  async toggleBusinessFeatured(businessId: string): Promise<{ message: string; business: Business }> {
+    return this.request(`/admin/businesses/${businessId}/feature`, {
+      method: 'PATCH',
+    });
+  }
+
+  async deleteUser(userId: string): Promise<{ message: string }> {
+    return this.request(`/admin/users/${userId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async deleteBusinessAsAdmin(businessId: string): Promise<{ message: string }> {
+    return this.request(`/admin/businesses/${businessId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getPendingApprovals(): Promise<{ businesses: Business[]; count: number }> {
+    return this.request('/admin/pending_approvals');
+  }
+
+  async approveBusiness(businessId: string): Promise<{ message: string; business: Business }> {
+    return this.request(`/admin/businesses/${businessId}/approve`, {
+      method: 'PATCH',
+    });
+  }
+
+  async rejectBusiness(businessId: string): Promise<{ message: string }> {
+    return this.request(`/admin/businesses/${businessId}/reject`, {
+      method: 'PATCH',
+    });
+  }
+
+  async suspendUser(userId: string): Promise<{ message: string; user: any }> {
+    return this.request(`/admin/users/${userId}/suspend`, {
+      method: 'PATCH',
+    });
+  }
+
+  async activateUser(userId: string): Promise<{ message: string; user: any }> {
+    return this.request(`/admin/users/${userId}/activate`, {
+      method: 'PATCH',
+    });
+  }
+
+  // User profile methods
+  async getUserProfile(): Promise<any> {
+    return this.request('/users/profile');
+  }
+
+  async updateUserProfile(data: { name?: string; email?: string }): Promise<{ user: any; message: string }> {
+    return this.request('/users/profile', {
+      method: 'PATCH',
+      body: JSON.stringify({ user: data }),
+    });
+  }
+
+  async updatePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+    return this.request('/users/password', {
+      method: 'PATCH',
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+  }
+
+  async deleteAccount(password: string): Promise<{ message: string }> {
+    return this.request('/users/account', {
+      method: 'DELETE',
+      body: JSON.stringify({ password }),
+    });
+  }
+
+  // Distribution partner methods
+  async getDistributionDashboard(): Promise<any> {
+    return this.request('/distribution/dashboard');
+  }
+
+  async getDistributionBusinesses(): Promise<Business[]> {
+    return this.request('/distribution/businesses');
+  }
+
+  async getWhiteLabel(): Promise<any> {
+    return this.request('/distribution/white_label');
+  }
+
+  async updateWhiteLabel(data: any): Promise<{ white_label: any; message: string }> {
+    return this.request('/distribution/white_label', {
+      method: 'PATCH',
+      body: JSON.stringify({ white_label: data }),
+    });
+  }
+
+  async getDistributionStats(): Promise<any> {
+    return this.request('/distribution/stats');
+  }
 }
 
 export const apiService = new ApiService();

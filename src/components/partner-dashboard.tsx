@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Store, Plus, Eye, Edit, TrendingUp, Phone, Mail, MapPin, Clock, Star, BarChart3, Globe, Tag, Upload, X, GripVertical, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -14,6 +14,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Separator } from './ui/separator';
 import { toast } from 'sonner@2.0.3';
+import { apiService } from '../services/api';
+import { Business } from '../types';
 
 interface PartnerDashboardProps {
   userName: string;
@@ -31,8 +33,40 @@ export function PartnerDashboard({ userName, onNavigate }: PartnerDashboardProps
   const [activeTab, setActiveTab] = useState('listings');
   const [selectedPlan, setSelectedPlan] = useState('3-months');
   const [newBusinessStep, setNewBusinessStep] = useState(1);
+  const [myBusinesses, setMyBusinesses] = useState<Business[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const myBusinesses = [
+  // Fetch partner's businesses
+  useEffect(() => {
+    const fetchBusinesses = async () => {
+      try {
+        const businesses = await apiService.getMyBusinesses();
+        setMyBusinesses(businesses);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to load your businesses');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchBusinesses();
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-64"></div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-48 bg-muted rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const mockBusinesses = [
     { 
       id: '1', 
       name: 'Fresh Bistro Downtown', 

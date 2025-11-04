@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, User, Bell, Shield, Palette, Globe, CreditCard, Trash2, MapPin, Plus, Edit, Save, X } from 'lucide-react';
+import { apiService } from '../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -38,6 +39,11 @@ export function Settings({ onBack, userName, userEmail, isDarkMode, onToggleThem
   const [pushNotifications, setPushNotifications] = useState(true);
   const [dealAlerts, setDealAlerts] = useState(true);
   const [newsletter, setNewsletter] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [profileData, setProfileData] = useState({ name: userName, email: userEmail });
+  const [passwordData, setPasswordData] = useState({ current: '', new: '', confirm: '' });
+  const [deletePassword, setDeletePassword] = useState('');
   
   // Location management state
   const [locations, setLocations] = useState<Location[]>([
@@ -95,6 +101,67 @@ export function Settings({ onBack, userName, userEmail, isDarkMode, onToggleThem
       status: location.status,
     });
     setLocationDialogOpen(true);
+  };
+
+  const handleSaveProfile = async () => {
+    setIsSaving(true);
+    try {
+      const response = await apiService.updateUserProfile({
+        name: profileData.name,
+        email: profileData.email
+      });
+      toast.success(response.message || 'Profile updated successfully');
+      setIsEditing(false);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordData.new !== passwordData.confirm) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    if (passwordData.new.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const response = await apiService.updatePassword(passwordData.current, passwordData.new);
+      toast.success(response.message || 'Password updated successfully');
+      setPasswordData({ current: '', new: '', confirm: '' });
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update password');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword) {
+      toast.error('Please enter your password to confirm');
+      return;
+    }
+    
+    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await apiService.deleteAccount(deletePassword);
+      toast.success('Account deleted successfully');
+      apiService.logout();
+      window.location.href = '/';
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete account');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSaveLocation = () => {
@@ -182,17 +249,24 @@ export function Settings({ onBack, userName, userEmail, isDarkMode, onToggleThem
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
-                  <Input id="name" defaultValue={userName} />
+                  <Input 
+                    id="name" 
+                    value={profileData.name}
+                    onChange={(e) => setProfileData({...profileData, name: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input id="email" type="email" defaultValue={userEmail} />
+                  <Input 
+                    id="email" 
+                    type="email" 
+                    value={profileData.email}
+                    onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                  />
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
-                  <Input id="phone" type="tel" placeholder="(555) 123-4567" />
-                </div>
-                <Button>Save Changes</Button>
+                <Button onClick={handleSaveProfile} disabled={isSaving}>
+                  {isSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
               </CardContent>
             </Card>
 
@@ -204,17 +278,34 @@ export function Settings({ onBack, userName, userEmail, isDarkMode, onToggleThem
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="current-password">Current Password</Label>
-                  <Input id="current-password" type="password" />
+                  <Input 
+                    id="current-password" 
+                    type="password"
+                    value={passwordData.current}
+                    onChange={(e) => setPasswordData({...passwordData, current: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="new-password">New Password</Label>
-                  <Input id="new-password" type="password" />
+                  <Input 
+                    id="new-password" 
+                    type="password"
+                    value={passwordData.new}
+                    onChange={(e) => setPasswordData({...passwordData, new: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm New Password</Label>
-                  <Input id="confirm-password" type="password" />
+                  <Input 
+                    id="confirm-password" 
+                    type="password"
+                    value={passwordData.confirm}
+                    onChange={(e) => setPasswordData({...passwordData, confirm: e.target.value})}
+                  />
                 </div>
-                <Button>Update Password</Button>
+                <Button onClick={handleChangePassword} disabled={isSaving}>
+                  {isSaving ? 'Updating...' : 'Update Password'}
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -361,10 +452,24 @@ export function Settings({ onBack, userName, userEmail, isDarkMode, onToggleThem
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-muted-foreground mb-4">
                     Once you delete your account, there is no going back. Please be certain.
                   </p>
-                  <Button variant="destructive">Delete Account</Button>
+                  <div className="space-y-4">
+                    <Input
+                      type="password"
+                      placeholder="Enter your password to confirm"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                    />
+                    <Button 
+                      variant="destructive" 
+                      onClick={handleDeleteAccount}
+                      disabled={!deletePassword || isSaving}
+                    >
+                      {isSaving ? 'Deleting...' : 'Delete Account'}
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>

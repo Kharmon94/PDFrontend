@@ -41,7 +41,7 @@ export function SavedDeals({
     try {
       await apiService.toggleSavedDeal(String(businessId));
       setSavedBusinesses(prev => prev.filter(b => b.id !== businessId));
-      toast.success(`Removed ${businessName} from saved deals`);
+    toast.success(`Removed ${businessName} from saved deals`);
     } catch (error: any) {
       toast.error(error.message || 'Failed to remove deal');
       setRemovingIds(prev => {
@@ -120,15 +120,15 @@ export function SavedDeals({
             >
               <ImageWithFallback
                 src={business.image || ''}
-                alt={business.name}
+                  alt={business.name}
                 className="w-full h-48 object-cover"
-              />
+                />
               {business.has_deals && business.deal && (
                 <Badge className="absolute top-2 left-2 bg-destructive hover:bg-destructive/90">
                   Deal Active
                 </Badge>
               )}
-            </div>
+                    </div>
 
             <CardContent className="p-4">
               <div className="mb-3">
@@ -141,7 +141,7 @@ export function SavedDeals({
                 <Badge variant="secondary" className="text-xs">
                   {business.category}
                 </Badge>
-              </div>
+                  </div>
 
               <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
                 {business.description}
@@ -150,17 +150,17 @@ export function SavedDeals({
               {business.has_deals && business.deal && (
                 <div className="mb-4 p-2 bg-destructive/10 border border-destructive/20 rounded text-sm">
                   <p className="text-destructive font-medium line-clamp-2">{business.deal}</p>
-                </div>
-              )}
+                    </div>
+                  )}
 
               <div className="flex gap-2">
-                <Button 
-                  variant="outline" 
+                  <Button
+                    variant="outline"
                   className="flex-1"
                   onClick={() => onViewListing(String(business.id))}
-                >
-                  View Details
-                </Button>
+                  >
+                    View Details
+                  </Button>
                 <Button
                   variant="outline"
                   size="icon"

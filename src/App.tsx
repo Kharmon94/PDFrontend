@@ -144,9 +144,6 @@ export default function App() {
     // Cookie declined logic
   };
 
-  const handleDashboardTypeChange = (type: 'user' | 'partner' | 'distribution' | 'admin') => {
-    setUserType(type);
-  };
 
   const handleToggleTheme = () => {
     // No longer using dark mode
@@ -225,7 +222,6 @@ export default function App() {
           userType={userType}
           userName={userName}
           onNavigate={handleNavigate}
-          onDashboardTypeChange={handleDashboardTypeChange}
           isUserLoggedIn={isUserLoggedIn}
         />
       )}

@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Package, Users, DollarSign, BarChart3, Settings, TrendingUp, AlertCircle, CheckCircle, Clock, Search, Filter, MoreVertical, Eye, Edit, Trash2, Mail, Calendar, Heart, X, MapPin, Phone, Globe, Map, ChevronLeft, ChevronRight } from 'lucide-react';
+import { apiService } from '../services/api';
+import { toast } from 'sonner@2.0.3';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
@@ -20,49 +22,147 @@ interface AdminDashboardProps {
 export function AdminDashboard({ userName }: AdminDashboardProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedUser, setSelectedUser] = useState<typeof recentUsers[0] | null>(null);
+  const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [userDialogMode, setUserDialogMode] = useState<'view' | 'edit' | 'suspend' | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [selectedApproval, setSelectedApproval] = useState<any>(null);
-  const [approvalDialogMode, setApprovalDialogMode] = useState<'view' | 'approve' | 'reject' | null>(null);
-  const [platformSettingsOpen, setPlatformSettingsOpen] = useState(false);
-  const [selectedDistributor, setSelectedDistributor] = useState<any>(null);
-  const [distributorDialogMode, setDistributorDialogMode] = useState<'view' | 'edit' | null>(null);
-  const [selectedBusiness, setSelectedBusiness] = useState<typeof recentBusinesses[0] | null>(null);
+  const [selectedBusiness, setSelectedBusiness] = useState<any | null>(null);
   const [businessDialogMode, setBusinessDialogMode] = useState<'view' | 'edit' | 'delete' | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<typeof locations[0] | null>(null);
-  const [locationDialogMode, setLocationDialogMode] = useState<'view' | 'edit' | 'delete' | null>(null);
+  
+  // API Data
+  const [platformStats, setPlatformStats] = useState<any>(null);
+  const [users, setUsers] = useState<any[]>([]);
+  const [businesses, setBusinesses] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [isLoadingBusinesses, setIsLoadingBusinesses] = useState(false);
+  const [userPage, setUserPage] = useState(1);
+  const [businessPage, setBusinessPage] = useState(1);
+  const [userPagination, setUserPagination] = useState<any>(null);
+  const [businessPagination, setBusinessPagination] = useState<any>(null);
 
-  const platformStats = {
-    totalBusinesses: 5247,
-    totalUsers: 52431,
-    monthlyRevenue: 45280,
-    activeDeals: 1823,
-    pendingApprovals: 28,
-    activeDistributors: 156,
+  // Fetch platform stats on mount
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const stats = await apiService.getAdminStats();
+        setPlatformStats(stats);
+      } catch (error: any) {
+        toast.error(error.message || 'Failed to load stats');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchStats();
+  }, []);
+
+  // Fetch users when tab changes or search changes
+  useEffect(() => {
+    if (activeTab === 'users') {
+      fetchUsers();
+    }
+  }, [activeTab, searchTerm, userPage]);
+
+  // Fetch businesses when tab changes or search changes
+  useEffect(() => {
+    if (activeTab === 'businesses') {
+      fetchBusinesses();
+    }
+  }, [activeTab, searchTerm, businessPage]);
+
+  const fetchUsers = async () => {
+    setIsLoadingUsers(true);
+    try {
+      const response = await apiService.getAdminUsers({
+        page: userPage,
+        per_page: 10,
+        search: searchTerm || undefined
+      });
+      setUsers(response.users);
+      setUserPagination(response.pagination);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load users');
+    } finally {
+      setIsLoadingUsers(false);
+    }
   };
 
-  const recentBusinesses = [
-    { id: 1, name: 'Urban Cuts Barbershop', owner: 'John Smith', category: 'Services', status: 'Active', joined: 'Oct 20, 2025', plan: 'Premium' },
-    { id: 2, name: 'Fresh Market Grocery', owner: 'Maria Garcia', category: 'Retail', status: 'Pending', joined: 'Oct 19, 2025', plan: 'Basic' },
-    { id: 3, name: 'Wellness Spa & Retreat', owner: 'Sarah Johnson', category: 'Health', status: 'Active', joined: 'Oct 18, 2025', plan: 'Featured' },
-    { id: 4, name: 'Tech Repair Pro', owner: 'Mike Chen', category: 'Services', status: 'Active', joined: 'Oct 17, 2025', plan: 'Premium' },
-  ];
+  const fetchBusinesses = async () => {
+    setIsLoadingBusinesses(true);
+    try {
+      const response = await apiService.getAdminBusinesses({
+        page: businessPage,
+        per_page: 10,
+        search: searchTerm || undefined
+      });
+      setBusinesses(response.businesses);
+      setBusinessPagination(response.pagination);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to load businesses');
+    } finally {
+      setIsLoadingBusinesses(false);
+    }
+  };
 
-  const recentUsers = [
-    { id: 1, name: 'Alex Thompson', email: 'alex@email.com', joined: 'Oct 20, 2025', savedDeals: 12, status: 'Active' },
-    { id: 2, name: 'Emma Wilson', email: 'emma@email.com', joined: 'Oct 19, 2025', savedDeals: 5, status: 'Active' },
-    { id: 3, name: 'David Brown', email: 'david@email.com', joined: 'Oct 18, 2025', savedDeals: 8, status: 'Active' },
-    { id: 4, name: 'Sophie Martinez', email: 'sophie@email.com', joined: 'Oct 17, 2025', savedDeals: 15, status: 'Active' },
-  ];
+  const handleToggleFeatured = async (businessId: number) => {
+    try {
+      const result = await apiService.toggleBusinessFeatured(String(businessId));
+      toast.success(result.message);
+      fetchBusinesses(); // Refresh list
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update business');
+    }
+  };
 
-  const pendingApprovals = [
-    { 
-      id: 1, 
-      type: 'Business', 
-      name: 'Fresh Market Grocery', 
-      requestedBy: 'Maria Garcia',
-      email: 'maria@freshmarket.com',
+  const handleDeleteUser = async (userId: number) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+    
+    try {
+      const result = await apiService.deleteUser(String(userId));
+      toast.success(result.message);
+      fetchUsers(); // Refresh list
+      setSelectedUser(null);
+      setUserDialogMode(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete user');
+    }
+  };
+
+  const handleDeleteBusiness = async (businessId: number) => {
+    if (!confirm('Are you sure you want to delete this business?')) return;
+    
+    try {
+      const result = await apiService.deleteBusinessAsAdmin(String(businessId));
+      toast.success(result.message);
+      fetchBusinesses(); // Refresh list
+      setSelectedBusiness(null);
+      setBusinessDialogMode(null);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete business');
+    }
+  };
+
+  // Legacy mock data for features not yet in backend (approvals, distributors, locations)
+  const pendingApprovals: any[] = [];
+  const locations: any[] = [];
+  const distributors: any[] = [];
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-64"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-32 bg-muted rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
       phone: '(555) 123-4567',
       category: 'Retail',
       address: '456 Market Street, Downtown',
@@ -412,8 +512,8 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
                   <Package className="w-6 h-6 sm:w-8 sm:h-8 text-gray-900" />
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Businesses</p>
-                <p className="text-2xl sm:text-3xl">{platformStats.totalBusinesses.toLocaleString()}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">+12% this month</p>
+                <p className="text-2xl sm:text-3xl">{platformStats?.total_businesses?.toLocaleString() || '0'}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">All time</p>
               </CardContent>
             </Card>
 
@@ -423,8 +523,8 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
                   <Users className="w-6 h-6 sm:w-8 sm:h-8 text-gray-700" />
                 </div>
                 <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Users</p>
-                <p className="text-2xl sm:text-3xl">{platformStats.totalUsers.toLocaleString()}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">+8% this month</p>
+                <p className="text-2xl sm:text-3xl">{platformStats?.total_users?.toLocaleString() || '0'}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">All time</p>
               </CardContent>
             </Card>
 
@@ -433,9 +533,9 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
                   <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-gray-900" />
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Monthly Revenue</p>
-                <p className="text-2xl sm:text-3xl">${platformStats.monthlyRevenue.toLocaleString()}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">+15% this month</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Featured Businesses</p>
+                <p className="text-2xl sm:text-3xl">{platformStats?.featured_businesses?.toLocaleString() || '0'}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">Currently featured</p>
               </CardContent>
             </Card>
 
@@ -444,9 +544,9 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
                   <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-gray-700" />
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Active Deals</p>
-                <p className="text-2xl sm:text-3xl">{platformStats.activeDeals.toLocaleString()}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">+5% this month</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Businesses with Deals</p>
+                <p className="text-2xl sm:text-3xl">{platformStats?.businesses_with_deals?.toLocaleString() || '0'}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">Currently active</p>
               </CardContent>
             </Card>
 
@@ -455,9 +555,9 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
                   <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-gray-700" />
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Active Distributors</p>
-                <p className="text-2xl sm:text-3xl">{platformStats.activeDistributors}</p>
-                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">+18% this month</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Partners</p>
+                <p className="text-2xl sm:text-3xl">{platformStats?.total_partners?.toLocaleString() || '0'}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-2">Business partners</p>
               </CardContent>
             </Card>
 
@@ -466,8 +566,8 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
                 <div className="flex items-center justify-between mb-2 sm:mb-4">
                   <Clock className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600" />
                 </div>
-                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Pending Approvals</p>
-                <p className="text-2xl sm:text-3xl">{platformStats.pendingApprovals}</p>
+                <p className="text-xs sm:text-sm text-muted-foreground mb-1">Recent Signups</p>
+                <p className="text-2xl sm:text-3xl">{platformStats?.recent_signups?.toLocaleString() || '0'}</p>
                 <Button size="sm" className="mt-2 w-full text-xs sm:text-sm" variant="outline" onClick={() => setActiveTab('approvals')}>Review</Button>
               </CardContent>
             </Card>
@@ -538,12 +638,17 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
             <CardContent className="p-4 sm:p-6 pt-0">
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3">
-                {recentBusinesses.map((business) => (
+                {isLoadingBusinesses ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading businesses...</div>
+                ) : businesses.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No businesses found</div>
+                ) : (
+                  businesses.map((business) => (
                   <div key={business.id} className="p-4 border rounded-lg space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
                         <p className="font-medium truncate">{business.name}</p>
-                        <p className="text-xs text-muted-foreground">{business.owner}</p>
+                        <p className="text-xs text-muted-foreground">{business.user?.name}</p>
                         <p className="text-xs text-muted-foreground mt-1">{business.category}</p>
                       </div>
                       <DropdownMenu>
@@ -557,11 +662,15 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
                             <Eye className="w-4 h-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleToggleFeatured(business.id)}>
+                            <TrendingUp className="w-4 h-4 mr-2" />
+                            {business.featured ? 'Unfeature' : 'Feature'} Business
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleBusinessAction(business, 'edit')}>
                             <Edit className="w-4 h-4 mr-2" />
-                            Edit
+                            View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => handleBusinessAction(business, 'delete')}>
+                          <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteBusiness(business.id)}>
                             <Trash2 className="w-4 h-4 mr-2" />
                             Delete
                           </DropdownMenuItem>
@@ -569,16 +678,13 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
                       </DropdownMenu>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={business.plan === 'Featured' ? 'default' : 'secondary'} className="text-xs">
-                        {business.plan}
-                      </Badge>
-                      <Badge variant={business.status === 'Active' ? 'default' : 'secondary'} className="text-xs">
-                        {business.status}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground ml-auto">{business.joined}</span>
+                      {business.featured && <Badge variant="default" className="text-xs">Featured</Badge>}
+                      {business.has_deals && <Badge variant="secondary" className="text-xs">Has Deals</Badge>}
+                      <Badge variant="outline" className="text-xs">{business.category}</Badge>
                     </div>
                   </div>
-                ))}
+                ))
+                )}
               </div>
 
               {/* Desktop Table View */}
@@ -663,7 +769,12 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
             <CardContent className="p-4 sm:p-6 pt-0">
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3">
-                {recentUsers.map((user) => (
+                {isLoadingUsers ? (
+                  <div className="text-center py-8 text-muted-foreground">Loading users...</div>
+                ) : users.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No users found</div>
+                ) : (
+                  users.map((user) => (
                   <div key={user.id} className="p-4 border rounded-lg space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -700,7 +811,8 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
                       <span className="text-muted-foreground">{user.joined}</span>
                     </div>
                   </div>
-                ))}
+                ))
+                )}
               </div>
 
               {/* Desktop Table View */}
@@ -710,19 +822,31 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
                     <TableRow>
                       <TableHead className="text-xs sm:text-sm">Name</TableHead>
                       <TableHead className="text-xs sm:text-sm">Email</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Joined</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Type</TableHead>
+                      <TableHead className="text-xs sm:text-sm">Businesses</TableHead>
                       <TableHead className="text-xs sm:text-sm">Saved Deals</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Status</TableHead>
                       <TableHead className="text-right text-xs sm:text-sm">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentUsers.map((user) => (
+                    {isLoadingUsers ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8">Loading...</TableCell>
+                      </TableRow>
+                    ) : users.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No users found</TableCell>
+                      </TableRow>
+                    ) : (
+                      users.map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="text-xs sm:text-sm">{user.name}</TableCell>
                         <TableCell className="text-xs sm:text-sm">{user.email}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">{user.joined}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">{user.savedDeals}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">
+                          <Badge variant="outline">{user.user_type}</Badge>
+                        </TableCell>
+                        <TableCell className="text-xs sm:text-sm">{user.businesses_count || 0}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{user.saved_deals_count || 0}</TableCell>
                         <TableCell className="text-xs sm:text-sm">
                           <Badge variant="default" className="text-xs">{user.status}</Badge>
                         </TableCell>
@@ -742,15 +866,16 @@ export function AdminDashboard({ userName }: AdminDashboardProps) {
                                 <Edit className="w-4 h-4 mr-2" />
                                 Edit
                               </DropdownMenuItem>
-                              <DropdownMenuItem className="text-destructive" onClick={() => handleUserAction(user, 'suspend')}>
+                              <DropdownMenuItem className="text-destructive" onClick={() => handleDeleteUser(user.id)}>
                                 <Trash2 className="w-4 h-4 mr-2" />
-                                Suspend
+                                Delete User
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                    )}
                   </TableBody>
                 </Table>
               </div>

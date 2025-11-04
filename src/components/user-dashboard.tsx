@@ -3,7 +3,6 @@ import { Heart, Eye, TrendingUp, MapPin, Phone, Mail, Globe, Clock, Star, Tag, X
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { DashboardSwitcher } from './dashboard-switcher';
 import { AdminDashboard } from './admin-dashboard';
 import { PartnerDashboard } from './partner-dashboard';
 import { DistributionPartnerDashboard } from './distribution-partner-dashboard';
@@ -16,11 +15,10 @@ interface UserDashboardProps {
   userType: 'user' | 'partner' | 'distribution' | 'admin';
   userName: string;
   onNavigate: (page: string) => void;
-  onDashboardTypeChange?: (type: 'user' | 'partner' | 'distribution' | 'admin') => void;
   isUserLoggedIn?: boolean;
 }
 
-export function UserDashboard({ userType, userName, onNavigate, onDashboardTypeChange, isUserLoggedIn = true }: UserDashboardProps) {
+export function UserDashboard({ userType, userName, onNavigate, isUserLoggedIn = true }: UserDashboardProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [selectedRecommendation, setSelectedRecommendation] = useState<string | null>(null);
 
@@ -122,10 +120,6 @@ export function UserDashboard({ userType, userName, onNavigate, onDashboardTypeC
 
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {onDashboardTypeChange && (
-          <DashboardSwitcher currentType={userType} onTypeChange={onDashboardTypeChange} />
-        )}
-
         <div className="mb-8">
           <h1 className="mb-2">Welcome back, {userName}!</h1>
           <p className="text-muted-foreground">Here's what's happening with your saved deals</p>
@@ -384,44 +378,17 @@ export function UserDashboard({ userType, userName, onNavigate, onDashboardTypeC
 
   // Distribution Partner Dashboard
   if (userType === 'distribution') {
-    return (
-      <>
-        {onDashboardTypeChange && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-            <DashboardSwitcher currentType={userType} onTypeChange={onDashboardTypeChange} />
-          </div>
-        )}
-        <DistributionPartnerDashboard userName={userName} />
-      </>
-    );
+    return <DistributionPartnerDashboard userName={userName} />;
   }
 
   // Admin Dashboard
   if (userType === 'admin') {
-    return (
-      <>
-        {onDashboardTypeChange && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-            <DashboardSwitcher currentType={userType} onTypeChange={onDashboardTypeChange} />
-          </div>
-        )}
-        <AdminDashboard userName={userName} />
-      </>
-    );
+    return <AdminDashboard userName={userName} />;
   }
 
   // Business Partner Dashboard
   if (userType === 'partner') {
-    return (
-      <>
-        {onDashboardTypeChange && (
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-8">
-            <DashboardSwitcher currentType={userType} onTypeChange={onDashboardTypeChange} />
-          </div>
-        )}
-        <PartnerDashboard userName={userName} onNavigate={onNavigate} />
-      </>
-    );
+    return <PartnerDashboard userName={userName} onNavigate={onNavigate} />;
   }
 
   // Default return (shouldn't reach here)

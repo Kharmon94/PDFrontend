@@ -6,6 +6,8 @@ import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Textarea } from './ui/textarea';
 import logoImage from 'figma:asset/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
+import { apiService } from '../services/api';
+import { toast } from 'sonner@2.0.3';
 
 interface PartnerDashboardLoginProps {
   onBack: () => void;
@@ -15,16 +17,62 @@ interface PartnerDashboardLoginProps {
 
 export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab = 'login' }: PartnerDashboardLoginProps) {
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [signupData, setSignupData] = useState({
+    fullName: '',
+    email: '',
+    password: '',
+    organization: '',
+    phone: '',
+    city: '',
+    description: ''
+  });
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onDistributionLogin();
+    setIsLoading(true);
+    
+    try {
+      const response = await apiService.login(loginEmail, loginPassword);
+      if (response.user.user_type === 'distribution' || response.user.user_type === 'admin') {
+        toast.success('Welcome back!');
+        onDistributionLogin();
+      } else {
+        toast.error('This login is for distribution partners only');
+        apiService.logout();
+      }
+    } catch (error: any) {
+      toast.error(error.message || 'Login failed');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSignupSubmit = (e: React.FormEvent) => {
+  const handleSignupSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would create the account then log in
-    onDistributionLogin();
+    setIsLoading(true);
+    
+    try {
+      await apiService.signup({
+        name: signupData.fullName,
+        email: signupData.email,
+        password: signupData.password,
+        user_type: 'distribution'
+      });
+      
+      toast.success('Distribution partner account created!');
+      onDistributionLogin();
+    } catch (error: any) {
+      toast.error(error.message || 'Signup failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const updateSignupData = (field: string, value: string) => {
+    setSignupData(prev => ({ ...prev, [field]: value }));
   };
 
   return (
@@ -88,6 +136,8 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
                       id="login-email"
                       type="email"
                       placeholder="Enter your email"
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
                       required
                       className="pl-10 h-12"
                     />
@@ -102,6 +152,8 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
                       id="login-password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
+                      value={loginPassword}
+                      onChange={(e) => setLoginPassword(e.target.value)}
                       required
                       className="pl-10 pr-10 h-12"
                     />
@@ -125,8 +177,8 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
                   </button>
                 </div>
 
-                <Button type="submit" className="w-full h-12 text-base bg-black hover:bg-gray-800">
-                  Log In to Dashboard
+                <Button type="submit" className="w-full h-12 text-base bg-black hover:bg-gray-800" disabled={isLoading}>
+                  {isLoading ? 'Logging in...' : 'Log In to Dashboard'}
                 </Button>
               </form>
 
@@ -156,6 +208,8 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
                       id="signup-org"
                       type="text"
                       placeholder="Your organization name"
+                      value={signupData.organization}
+                      onChange={(e) => updateSignupData('organization', e.target.value)}
                       required
                       className="pl-10 h-12"
                     />
@@ -170,6 +224,8 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
                       id="signup-name"
                       type="text"
                       placeholder="Full name"
+                      value={signupData.fullName}
+                      onChange={(e) => updateSignupData('fullName', e.target.value)}
                       required
                       className="pl-10 h-12"
                     />
@@ -184,6 +240,8 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
                       id="signup-email"
                       type="email"
                       placeholder="your@organization.com"
+                      value={signupData.email}
+                      onChange={(e) => updateSignupData('email', e.target.value)}
                       required
                       className="pl-10 h-12"
                     />
@@ -198,6 +256,8 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
                       id="signup-phone"
                       type="tel"
                       placeholder="(555) 123-4567"
+                      value={signupData.phone}
+                      onChange={(e) => updateSignupData('phone', e.target.value)}
                       required
                       className="pl-10 h-12"
                     />
@@ -236,7 +296,10 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
                       id="signup-password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Create a password"
+                      value={signupData.password}
+                      onChange={(e) => updateSignupData('password', e.target.value)}
                       required
+                      minLength={6}
                       className="pl-10 pr-10 h-12"
                     />
                     <button
@@ -263,8 +326,8 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
                   </label>
                 </div>
 
-                <Button type="submit" className="w-full h-12 text-base bg-black hover:bg-gray-800">
-                  Submit Application
+                <Button type="submit" className="w-full h-12 text-base bg-black hover:bg-gray-800" disabled={isLoading}>
+                  {isLoading ? 'Creating Account...' : 'Submit Application'}
                 </Button>
               </form>
 
