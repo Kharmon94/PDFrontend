@@ -45,9 +45,17 @@ RUN apk add --no-cache gettext
 # Create startup script that injects environment variables
 RUN echo '#!/bin/sh' > /docker-entrypoint.sh && \
     echo 'PORT=${PORT:-80}' >> /docker-entrypoint.sh && \
-    echo 'REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:3001/api/v1}' >> /docker-entrypoint.sh && \
-    echo 'echo "API URL: $REACT_APP_API_URL"' >> /docker-entrypoint.sh && \
-    echo 'sed -i "s|{{REACT_APP_API_URL}}|$REACT_APP_API_URL|g" /usr/share/nginx/html/index.html' >> /docker-entrypoint.sh && \
+    echo '# Ensure API URL has protocol' >> /docker-entrypoint.sh && \
+    echo 'if [ -n "$REACT_APP_API_URL" ]; then' >> /docker-entrypoint.sh && \
+    echo '  case "$REACT_APP_API_URL" in' >> /docker-entrypoint.sh && \
+    echo '    http://*|https://*) API_URL="$REACT_APP_API_URL" ;;' >> /docker-entrypoint.sh && \
+    echo '    *) API_URL="https://$REACT_APP_API_URL" ;;' >> /docker-entrypoint.sh && \
+    echo '  esac' >> /docker-entrypoint.sh && \
+    echo 'else' >> /docker-entrypoint.sh && \
+    echo '  API_URL="http://localhost:3001/api/v1"' >> /docker-entrypoint.sh && \
+    echo 'fi' >> /docker-entrypoint.sh && \
+    echo 'echo "API URL: $API_URL"' >> /docker-entrypoint.sh && \
+    echo 'sed -i "s|{{REACT_APP_API_URL}}|$API_URL|g" /usr/share/nginx/html/index.html' >> /docker-entrypoint.sh && \
     echo 'envsubst '"'"'$$PORT'"'"' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf' >> /docker-entrypoint.sh && \
     echo 'exec nginx -g "daemon off;"' >> /docker-entrypoint.sh && \
     chmod +x /docker-entrypoint.sh
