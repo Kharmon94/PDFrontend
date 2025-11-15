@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, Handshake, Key, Mail, User, Phone, MapPin, Eye, EyeOff, Building2 } from 'lucide-react';
+import { ArrowLeft, Handshake, Key, Mail, User as UserIcon, Phone, MapPin, Eye, EyeOff, Building2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
@@ -219,7 +219,7 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
                 <div className="space-y-2">
                   <Label htmlFor="signup-name">Your Name</Label>
                   <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                    <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <Input
                       id="signup-name"
                       type="text"
