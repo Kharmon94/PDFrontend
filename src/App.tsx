@@ -24,6 +24,7 @@ import { ManageYourListing } from './components/manage-your-listing';
 import { PartnerDashboardLogin } from './components/partner-dashboard-login';
 import { WhiteLabelPlatformSettings } from './components/white-label-platform-settings';
 import { Toaster } from './components/ui/sonner';
+import { Button } from './components/ui/button';
 import { apiService } from './services/api';
 import { User, UserType } from './types';
 
@@ -179,12 +180,25 @@ export default function App() {
   };
 
 
-  const handleDashboardTypeChange = (type: 'user' | 'partner' | 'distribution' | 'admin') => {
-    setUserType(type);
-  };
-
   const handleToggleTheme = () => {
     // No longer using dark mode
+  };
+
+  // Route guards to prevent unauthorized dashboard access
+  const canAccessAdmin = () => {
+    return isUserLoggedIn && userType === 'admin';
+  };
+
+  const canAccessPartner = () => {
+    return isUserLoggedIn && userType === 'partner';
+  };
+
+  const canAccessDistribution = () => {
+    return isUserLoggedIn && userType === 'distribution';
+  };
+
+  const canAccessUserDashboard = () => {
+    return isUserLoggedIn && ['user', 'partner', 'distribution', 'admin'].includes(userType);
   };
 
   // Show loading screen while initializing
@@ -266,15 +280,27 @@ export default function App() {
         />
       )}
       {currentPage === 'user-dashboard' && (
-        <UserDashboard
-          userType={userType}
-          userName={userName}
-          savedDeals={savedDeals}
-          onNavigate={handleNavigate}
-          onDashboardTypeChange={handleDashboardTypeChange}
-          isUserLoggedIn={isUserLoggedIn}
-          onToggleSave={handleToggleSaveDeal}
-        />
+        <>
+          {canAccessUserDashboard() ? (
+            <UserDashboard
+              userType={userType}
+              userName={userName}
+              savedDeals={savedDeals}
+              onNavigate={handleNavigate}
+              isUserLoggedIn={isUserLoggedIn}
+              onToggleSave={handleToggleSaveDeal}
+              onLogout={handleUserLogout}
+            />
+          ) : (
+            <div className="min-h-screen flex items-center justify-center">
+              <div className="text-center">
+                <h2 className="mb-4">Access Denied</h2>
+                <p className="text-muted-foreground mb-4">Please log in to access your dashboard.</p>
+                <Button onClick={() => setCurrentPage('login')}>Log In</Button>
+              </div>
+            </div>
+          )}
+        </>
       )}
       {currentPage === 'settings' && (
         <Settings
@@ -320,12 +346,13 @@ export default function App() {
       {currentPage === 'manage-your-listing' && (
         <ManageYourListing 
           onBack={() => setCurrentPage('directory')} 
-          onLogin={() => {
-            setUserType('partner');
-            setIsBusinessLoggedIn(true);
-            setUserName('Business Partner');
-            setIsUserLoggedIn(true);
-            setCurrentPage('user-dashboard');
+          onLogin={(user: User) => {
+            handleUserLogin(user);
+            if (user.user_type === 'partner' || user.user_type === 'admin') {
+              setCurrentPage('user-dashboard');
+            } else {
+              setCurrentPage('directory');
+            }
           }}
           defaultTab={businessLoginTab}
         />
@@ -333,11 +360,13 @@ export default function App() {
       {currentPage === 'partner-dashboard-login' && (
         <PartnerDashboardLogin 
           onBack={() => setCurrentPage('directory')} 
-          onDistributionLogin={() => {
-            setUserType('distribution');
-            setUserName('Distribution Partner');
-            setIsUserLoggedIn(true);
-            setCurrentPage('user-dashboard');
+          onDistributionLogin={(user: User) => {
+            handleUserLogin(user);
+            if (user.user_type === 'distribution' || user.user_type === 'admin') {
+              setCurrentPage('user-dashboard');
+            } else {
+              setCurrentPage('directory');
+            }
           }}
           defaultTab={partnerLoginTab}
         />

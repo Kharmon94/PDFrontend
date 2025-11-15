@@ -17,9 +17,10 @@ import { Switch } from './ui/switch';
 
 interface AdminDashboardProps {
   userName: string;
+  onLogout?: () => void;
 }
 
-export function AdminDashboard({ userName }: AdminDashboardProps) {
+export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<any | null>(null);

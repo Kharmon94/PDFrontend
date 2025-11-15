@@ -3,7 +3,6 @@ import { Heart, Eye, TrendingUp, MapPin, Phone, Mail, Globe, Clock, Star, Tag, X
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { DashboardSwitcher } from './dashboard-switcher';
 import { AdminDashboard } from './admin-dashboard';
 import { PartnerDashboard } from './partner-dashboard';
 import { DistributionPartnerDashboard } from './distribution-partner-dashboard';
@@ -17,12 +16,12 @@ interface UserDashboardProps {
   userName: string;
   savedDeals?: string[];
   onNavigate: (page: string) => void;
-  onDashboardTypeChange?: (type: 'user' | 'partner' | 'distribution' | 'admin') => void;
   isUserLoggedIn?: boolean;
   onToggleSave?: (businessId: string) => void;
+  onLogout?: () => void;
 }
 
-export function UserDashboard({ userType, userName, savedDeals = [], onNavigate, onDashboardTypeChange, isUserLoggedIn = true, onToggleSave }: UserDashboardProps) {
+export function UserDashboard({ userType, userName, savedDeals = [], onNavigate, isUserLoggedIn = true, onToggleSave, onLogout }: UserDashboardProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [selectedRecommendation, setSelectedRecommendation] = useState<string | null>(null);
 
@@ -124,9 +123,6 @@ export function UserDashboard({ userType, userName, savedDeals = [], onNavigate,
 
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {onDashboardTypeChange && (
-          <DashboardSwitcher currentType={userType} onTypeChange={onDashboardTypeChange} />
-        )}
         <div className="mb-8">
           <h1 className="mb-2">Welcome back, {userName}!</h1>
           <p className="text-muted-foreground">Here's what's happening with your saved deals</p>
@@ -385,17 +381,17 @@ export function UserDashboard({ userType, userName, savedDeals = [], onNavigate,
 
   // Distribution Partner Dashboard
   if (userType === 'distribution') {
-    return <DistributionPartnerDashboard userName={userName} />;
+    return <DistributionPartnerDashboard userName={userName} onNavigate={onNavigate} onLogout={onLogout} />;
   }
 
   // Admin Dashboard
   if (userType === 'admin') {
-    return <AdminDashboard userName={userName} />;
+    return <AdminDashboard userName={userName} onLogout={onLogout} />;
   }
 
   // Business Partner Dashboard
   if (userType === 'partner') {
-    return <PartnerDashboard userName={userName} onNavigate={onNavigate} />;
+    return <PartnerDashboard userName={userName} onNavigate={onNavigate} onLogout={onLogout} />;
   }
 
   // Default return (shouldn't reach here)

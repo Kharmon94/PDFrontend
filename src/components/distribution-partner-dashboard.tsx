@@ -11,9 +11,11 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 
 interface DistributionPartnerDashboardProps {
   userName: string;
+  onNavigate?: (page: string) => void;
+  onLogout?: () => void;
 }
 
-export function DistributionPartnerDashboard({ userName }: DistributionPartnerDashboardProps) {
+export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }: DistributionPartnerDashboardProps) {
   const [selectedLocation, setSelectedLocation] = useState<typeof partnerLocations[0] | null>(null);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');

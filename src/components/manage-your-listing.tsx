@@ -1,10 +1,11 @@
 import { ArrowLeft } from 'lucide-react';
 import { Button } from './ui/button';
 import { BusinessLogin } from './business-login';
+import { User } from '../types';
 
 interface ManageYourListingProps {
   onBack: () => void;
-  onLogin: () => void;
+  onLogin: (user: User) => void;
   defaultTab?: 'login' | 'signup';
 }
 

@@ -20,9 +20,10 @@ import { Business } from '../types';
 interface PartnerDashboardProps {
   userName: string;
   onNavigate: (page: string) => void;
+  onLogout?: () => void;
 }
 
-export function PartnerDashboard({ userName, onNavigate }: PartnerDashboardProps) {
+export function PartnerDashboard({ userName, onNavigate, onLogout }: PartnerDashboardProps) {
   const [viewListingId, setViewListingId] = useState<string | null>(null);
   const [editListingId, setEditListingId] = useState<string | null>(null);
   const [showCreateDeal, setShowCreateDeal] = useState(false);

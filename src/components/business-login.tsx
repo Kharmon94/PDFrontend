@@ -8,10 +8,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Textarea } from './ui/textarea';
 import { apiService, STATIC_ASSETS } from '../services/api';
 import { toast } from 'sonner@2.0.3';
+import { User } from '../types';
 
 interface BusinessLoginProps {
   onBack: () => void;
-  onLogin: () => void;
+  onLogin: (user: User) => void;
   defaultTab?: 'login' | 'signup';
 }
 
@@ -46,7 +47,7 @@ export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: Busines
       const response = await apiService.login(loginEmail, loginPassword);
       if (response.user.user_type === 'partner' || response.user.user_type === 'admin') {
         toast.success('Welcome back!');
-        onLogin();
+        onLogin(response.user);
       } else {
         toast.error('This login is for business partners only');
         apiService.logout();
@@ -102,7 +103,14 @@ export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: Busines
       }, signupData.logo ? { image: signupData.logo } : undefined);
       
       toast.success('Business created successfully!');
-      onLogin();
+      // Get the current user after signup
+      try {
+        const currentUserResponse = await apiService.getCurrentUser();
+        onLogin(currentUserResponse.user);
+      } catch (error: any) {
+        // If getCurrentUser fails, we already have authResponse.user
+        onLogin(authResponse.user);
+      }
     } catch (error: any) {
       toast.error(error.message || 'Signup failed');
     } finally {

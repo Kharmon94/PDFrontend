@@ -7,10 +7,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Textarea } from './ui/textarea';
 import { apiService, STATIC_ASSETS } from '../services/api';
 import { toast } from 'sonner@2.0.3';
+import { User } from '../types';
 
 interface PartnerDashboardLoginProps {
   onBack: () => void;
-  onDistributionLogin: () => void;
+  onDistributionLogin: (user: User) => void;
   defaultTab?: 'login' | 'signup';
 }
 
@@ -37,7 +38,7 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
       const response = await apiService.login(loginEmail, loginPassword);
       if (response.user.user_type === 'distribution' || response.user.user_type === 'admin') {
         toast.success('Welcome back!');
-        onDistributionLogin();
+        onDistributionLogin(response.user);
       } else {
         toast.error('This login is for distribution partners only');
         apiService.logout();
@@ -54,7 +55,7 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
     setIsLoading(true);
     
     try {
-      await apiService.signup({
+      const response = await apiService.signup({
         name: signupData.fullName,
         email: signupData.email,
         password: signupData.password,
@@ -62,7 +63,7 @@ export function PartnerDashboardLogin({ onBack, onDistributionLogin, defaultTab 
       });
       
       toast.success('Distribution partner account created!');
-      onDistributionLogin();
+      onDistributionLogin(response.user);
     } catch (error: any) {
       toast.error(error.message || 'Signup failed');
     } finally {
