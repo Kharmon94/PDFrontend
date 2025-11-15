@@ -28,6 +28,13 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
   const [activeTab, setActiveTab] = useState('overview');
   const [selectedBusiness, setSelectedBusiness] = useState<any | null>(null);
   const [businessDialogMode, setBusinessDialogMode] = useState<'view' | 'edit' | 'delete' | null>(null);
+  const [selectedApproval, setSelectedApproval] = useState<any | null>(null);
+  const [approvalDialogMode, setApprovalDialogMode] = useState<'view' | 'approve' | 'reject' | null>(null);
+  const [selectedDistributor, setSelectedDistributor] = useState<any | null>(null);
+  const [distributorDialogMode, setDistributorDialogMode] = useState<'view' | 'edit' | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<any | null>(null);
+  const [locationDialogMode, setLocationDialogMode] = useState<'view' | 'edit' | 'delete' | null>(null);
+  const [platformSettingsOpen, setPlatformSettingsOpen] = useState(false);
   
   // API Data
   const [platformStats, setPlatformStats] = useState<any>(null);
@@ -40,6 +47,10 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
   const [businessPage, setBusinessPage] = useState(1);
   const [userPagination, setUserPagination] = useState<any>(null);
   const [businessPagination, setBusinessPagination] = useState<any>(null);
+  
+  // Derived data
+  const recentBusinesses = businesses.slice(0, 10);
+  const recentUsers = users.slice(0, 10);
 
   // Fetch platform stats on mount
   useEffect(() => {
@@ -267,7 +278,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
       </div>
 
       {/* Alert for pending approvals */}
-      {platformStats.pendingApprovals > 0 && (
+      {platformStats && platformStats.pendingApprovals > 0 && (
         <Card className="mb-4 sm:mb-6 border-orange-300 bg-orange-50">
           <CardContent className="p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
