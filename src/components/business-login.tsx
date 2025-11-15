@@ -6,7 +6,7 @@ import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
-import logoImage from 'figma:asset/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
+import logoImage from '../assets/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
 import { apiService } from '../services/api';
 import { toast } from 'sonner@2.0.3';
 

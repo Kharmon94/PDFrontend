@@ -1,7 +1,7 @@
 import { Building2, Mail, Facebook, Twitter, Instagram, Linkedin, Users, Handshake, Clock } from 'lucide-react';
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
-import logoImage from 'figma:asset/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
+import logoImage from '../assets/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
 
 type Page = 'home' | 'directory' | 'list-your-business' | 'manage-your-listing' | 'become-partner' | 'distribution-partner' | 'partner-dashboard-login' | 'about' | 'contact-us' | 'terms' | 'privacy' | 'cookies';
 

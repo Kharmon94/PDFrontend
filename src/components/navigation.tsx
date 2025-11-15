@@ -1,5 +1,5 @@
-import logoImage from 'figma:asset/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
-import logoDarkImage from 'figma:asset/086e1f0668410f07828122542aa5c045739f737a.png';
+import logoImage from '../assets/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
+import logoDarkImage from '../assets/086e1f0668410f07828122542aa5c045739f737a.png';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
