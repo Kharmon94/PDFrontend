@@ -21,9 +21,9 @@ export function DistributionPartner({ onGetStarted }: DistributionPartnerProps) 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="bg-gradient-to-b from-gray-900 to-gray-800 text-white py-24 sm:py-32">
+      <div className="bg-black text-white py-24 sm:py-32">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="mb-6 text-white">Boost Community Satisfaction with Local Perks</h1>
+          <h1 className="mb-6 text-white text-[24px]">Boost Community Satisfaction with Local Perks</h1>
           <h2 className="mb-8 text-white">Exclusive Local Offers For Your Members</h2>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-10 text-lg">

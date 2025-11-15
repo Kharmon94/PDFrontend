@@ -17,7 +17,7 @@ export function AboutUs({ onBack }: AboutUsProps) {
 
         {/* Hero Section */}
         <div className="text-center mb-16">
-          <h1 className="mb-4">About Preferred Deals</h1>
+          <h1 className="mb-4 text-[32px]">About Preferred Deals</h1>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
             We're on a mission to strengthen local communities by connecting people with the businesses 
             they love and helping local enterprises thrive in the digital age.

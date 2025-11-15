@@ -12,9 +12,9 @@ export function ListYourBusiness({ onBack, onGetStarted }: ListYourBusinessProps
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <div className="bg-gradient-to-b from-gray-900 to-gray-800 text-white py-24 sm:py-32 bg-[rgba(0,0,0,0)]">
+      <div className="bg-black text-white py-24 sm:py-32">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="mb-6 text-white">Your Business in Front of More Customers</h1>
+          <h1 className="mb-6 text-white text-[32px]">Your Business in Front of More Customers</h1>
           <h2 className="mb-8 text-white">Without Paying for Ads</h2>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-10 text-lg">
@@ -44,7 +44,7 @@ export function ListYourBusiness({ onBack, onGetStarted }: ListYourBusinessProps
 
       {/* How It Works Section */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-        <h2 className="text-center mb-12">How It Works</h2>
+        <h2 className="text-center mb-12 text-[24px]">How It Works</h2>
         
         <div className="space-y-6">
           {/* Step 1 */}

@@ -20,7 +20,7 @@ export function ContactUs({ onBack }: ContactUsProps) {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-          <h1 className="mb-4">Contact Us</h1>
+          <h1 className="mb-4 text-[32px]">Contact Us</h1>
           <p className="text-muted-foreground text-lg">
             Have questions? We're here to help. Reach out to our team and we'll get back to you as soon as possible.
           </p>

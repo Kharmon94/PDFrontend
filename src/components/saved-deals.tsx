@@ -9,26 +9,44 @@ import { Business } from '../types';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface SavedDealsProps {
+  savedDealIds?: string[];
+  businesses?: Business[];
+  onRemoveDeal?: (businessId: string) => void;
   onViewListing: (businessId: string) => void;
   onBack?: () => void;
 }
 
 export function SavedDeals({
+  savedDealIds,
+  businesses,
+  onRemoveDeal,
   onViewListing,
   onBack,
 }: SavedDealsProps) {
   const [savedBusinesses, setSavedBusinesses] = useState<Business[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [removingIds, setRemovingIds] = useState<Set<number>>(new Set());
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    fetchSavedDeals();
-  }, []);
+    // If businesses prop is provided, filter by savedDealIds (design mode)
+    if (businesses && savedDealIds !== undefined) {
+      setSavedBusinesses(businesses.filter(b => savedDealIds.includes(String(b.id))));
+      setIsLoading(false);
+    } else {
+      // Otherwise, fetch from API (backend integration mode)
+      fetchSavedDeals();
+    }
+  }, [businesses, savedDealIds]);
 
   const fetchSavedDeals = async () => {
     try {
       const deals = await apiService.getSavedDeals();
-      setSavedBusinesses(deals);
+      // If savedDealIds is provided, filter the results
+      if (savedDealIds && savedDealIds.length > 0) {
+        setSavedBusinesses(deals.filter((b: Business) => savedDealIds.includes(String(b.id))));
+      } else {
+        setSavedBusinesses(deals);
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to load saved deals');
     } finally {
@@ -36,17 +54,32 @@ export function SavedDeals({
     }
   };
 
-  const handleRemove = async (businessId: number, businessName: string) => {
-    setRemovingIds(prev => new Set(prev).add(businessId));
-    try {
-      await apiService.toggleSavedDeal(String(businessId));
-      setSavedBusinesses(prev => prev.filter(b => b.id !== businessId));
-    toast.success(`Removed ${businessName} from saved deals`);
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to remove deal');
+  const handleRemove = async (businessId: string | number, businessName: string) => {
+    const businessIdStr = String(businessId);
+    setRemovingIds(prev => new Set(prev).add(businessIdStr));
+    
+    // If onRemoveDeal callback is provided, use it (App.tsx handles API call)
+    if (onRemoveDeal) {
+      onRemoveDeal(businessIdStr);
       setRemovingIds(prev => {
         const newSet = new Set(prev);
-        newSet.delete(businessId);
+        newSet.delete(businessIdStr);
+        return newSet;
+      });
+      return;
+    }
+
+    // Otherwise, handle API call here
+    try {
+      await apiService.toggleSavedDeal(businessIdStr);
+      setSavedBusinesses(prev => prev.filter(b => String(b.id) !== businessIdStr));
+      toast.success(`Removed ${businessName} from saved deals`);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to remove deal');
+    } finally {
+      setRemovingIds(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(businessIdStr);
         return newSet;
       });
     }
@@ -165,7 +198,7 @@ export function SavedDeals({
                   variant="outline"
                   size="icon"
                   onClick={() => handleRemove(business.id, business.name)}
-                  disabled={removingIds.has(business.id)}
+                  disabled={removingIds.has(String(business.id))}
                   className="text-destructive hover:bg-destructive/10"
                 >
                   <Trash2 className="w-4 h-4" />

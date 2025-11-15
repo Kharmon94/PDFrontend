@@ -22,11 +22,12 @@ import { ContactUs } from './components/contact-us';
 import { ListYourBusiness } from './components/list-your-business';
 import { ManageYourListing } from './components/manage-your-listing';
 import { PartnerDashboardLogin } from './components/partner-dashboard-login';
+import { WhiteLabelPlatformSettings } from './components/white-label-platform-settings';
 import { Toaster } from './components/ui/sonner';
 import { apiService } from './services/api';
 import { User, UserType } from './types';
 
-type Page = 'home' | 'directory' | 'become-partner' | 'dashboard' | 'distribution-partner' | 'listing-detail' | 'login' | 'saved-deals' | 'user-dashboard' | 'terms' | 'privacy' | 'cookies' | 'about' | 'help' | 'pricing' | 'settings' | 'contact-us' | 'list-your-business' | 'manage-your-listing' | 'partner-dashboard-login';
+type Page = 'home' | 'directory' | 'become-partner' | 'dashboard' | 'distribution-partner' | 'listing-detail' | 'login' | 'saved-deals' | 'user-dashboard' | 'terms' | 'privacy' | 'cookies' | 'about' | 'help' | 'pricing' | 'settings' | 'contact-us' | 'list-your-business' | 'manage-your-listing' | 'partner-dashboard-login' | 'white-label-settings';
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -40,6 +41,7 @@ export default function App() {
   const [userEmail, setUserEmail] = useState('');
   const [userType, setUserType] = useState<UserType>('user');
   const [isInitializing, setIsInitializing] = useState(true);
+  const [savedDeals, setSavedDeals] = useState<string[]>([]);
   
   // Listing detail state
   const [selectedBusinessId, setSelectedBusinessId] = useState<string | null>(null);
@@ -59,6 +61,9 @@ export default function App() {
   // Partner login default tab state
   const [partnerLoginTab, setPartnerLoginTab] = useState<'login' | 'signup'>('login');
   
+  // Track previous page for back navigation
+  const [previousPage, setPreviousPage] = useState<Page>('home');
+  
   // Theme state - removed, no longer using dark mode
 
   // Initialize user session on app load
@@ -72,6 +77,15 @@ export default function App() {
           setUserEmail(response.user.email);
           setUserType(response.user.user_type);
           setIsUserLoggedIn(true);
+          
+          // Load saved deals
+          try {
+            const savedDealsData = await apiService.getSavedDeals();
+            setSavedDeals(savedDealsData.map((deal: any) => String(deal.id)));
+          } catch (error) {
+            // Saved deals might not be available
+            console.log('Could not load saved deals');
+          }
         }
       } catch (error) {
         // User not authenticated, that's fine
@@ -105,6 +119,7 @@ export default function App() {
     setCurrentUser(null);
     setUserName('');
     setUserEmail('');
+    setSavedDeals([]);
     setCurrentPage('directory');
   };
 
@@ -113,6 +128,25 @@ export default function App() {
     setCurrentPage('listing-detail');
   };
 
+  const handleToggleSaveDeal = async (businessId: string) => {
+    if (!isUserLoggedIn) {
+      handleLoginRequired();
+      return;
+    }
+
+    try {
+      await apiService.toggleSavedDeal(businessId);
+      setSavedDeals(prev => {
+        if (prev.includes(businessId)) {
+          return prev.filter(id => id !== businessId);
+        } else {
+          return [...prev, businessId];
+        }
+      });
+    } catch (error: any) {
+      console.error('Failed to toggle saved deal:', error);
+    }
+  };
 
   const handleLoginRequired = () => {
     setCurrentPage('login');
@@ -144,6 +178,10 @@ export default function App() {
     // Cookie declined logic
   };
 
+
+  const handleDashboardTypeChange = (type: 'user' | 'partner' | 'distribution' | 'admin') => {
+    setUserType(type);
+  };
 
   const handleToggleTheme = () => {
     // No longer using dark mode
@@ -187,7 +225,13 @@ export default function App() {
         />
       )}
       {currentPage === 'dashboard' && (
-        <BusinessDashboard businessId={businessId} />
+        <BusinessDashboard 
+          businessId={businessId}
+          onNavigate={(page) => {
+            setPreviousPage('dashboard');
+            handleNavigate(page as Page);
+          }}
+        />
       )}
       {currentPage === 'distribution-partner' && (
         <DistributionPartner onGetStarted={() => {
@@ -201,6 +245,8 @@ export default function App() {
           onBack={() => setCurrentPage('directory')}
           isUserLoggedIn={isUserLoggedIn}
           onLoginRequired={handleLoginRequired}
+          savedDeals={savedDeals}
+          onToggleSave={handleToggleSaveDeal}
         />
       )}
       {currentPage === 'login' && (
@@ -213,6 +259,8 @@ export default function App() {
       )}
       {currentPage === 'saved-deals' && (
         <SavedDeals
+          savedDealIds={savedDeals}
+          onRemoveDeal={handleToggleSaveDeal}
           onViewListing={handleViewListing}
           onBack={() => setCurrentPage('user-dashboard')}
         />
@@ -221,8 +269,11 @@ export default function App() {
         <UserDashboard
           userType={userType}
           userName={userName}
+          savedDeals={savedDeals}
           onNavigate={handleNavigate}
+          onDashboardTypeChange={handleDashboardTypeChange}
           isUserLoggedIn={isUserLoggedIn}
+          onToggleSave={handleToggleSaveDeal}
         />
       )}
       {currentPage === 'settings' && (
@@ -252,7 +303,7 @@ export default function App() {
         <HelpCenter onBack={() => setCurrentPage('home')} />
       )}
       {currentPage === 'pricing' && (
-        <PricingPlans onBack={() => setCurrentPage('home')} />
+        <PricingPlans onBack={() => setCurrentPage(previousPage)} />
       )}
       {currentPage === 'contact-us' && (
         <ContactUs onBack={() => setCurrentPage('home')} />
@@ -269,15 +320,32 @@ export default function App() {
       {currentPage === 'manage-your-listing' && (
         <ManageYourListing 
           onBack={() => setCurrentPage('directory')} 
-          onLogin={() => setCurrentPage('dashboard')}
+          onLogin={() => {
+            setUserType('partner');
+            setIsBusinessLoggedIn(true);
+            setUserName('Business Partner');
+            setIsUserLoggedIn(true);
+            setCurrentPage('user-dashboard');
+          }}
           defaultTab={businessLoginTab}
         />
       )}
       {currentPage === 'partner-dashboard-login' && (
         <PartnerDashboardLogin 
           onBack={() => setCurrentPage('directory')} 
-          onDistributionLogin={() => setCurrentPage('user-dashboard')}
+          onDistributionLogin={() => {
+            setUserType('distribution');
+            setUserName('Distribution Partner');
+            setIsUserLoggedIn(true);
+            setCurrentPage('user-dashboard');
+          }}
           defaultTab={partnerLoginTab}
+        />
+      )}
+      {currentPage === 'white-label-settings' && (
+        <WhiteLabelPlatformSettings 
+          onBack={() => setCurrentPage('user-dashboard')}
+          partnerName={userName}
         />
       )}
       

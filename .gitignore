@@ -40,3 +40,8 @@ coverage/
 *.log
 .cache
 
+# Figma sync
+temp/figma-repo/
+reports/
+.backup/
+.figma-sync-state.json

@@ -57,6 +57,8 @@
     },
       "scripts": {
           "dev": "vite",
-          "build": "vite build"
+          "build": "vite build",
+          "figma:check": "node scripts/figma-sync.js check",
+          "figma:diff": "node scripts/figma-sync.js diff"
       }
   }

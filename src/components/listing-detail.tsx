@@ -21,6 +21,8 @@ interface ListingDetailProps {
   onBack: () => void;
   isUserLoggedIn: boolean;
   onLoginRequired: () => void;
+  savedDeals?: string[];
+  onToggleSave?: (businessId: string) => void;
 }
 
 export function ListingDetail({
@@ -28,6 +30,8 @@ export function ListingDetail({
   onBack,
   isUserLoggedIn,
   onLoginRequired,
+  savedDeals,
+  onToggleSave,
 }: ListingDetailProps) {
   const [business, setBusiness] = useState<Business | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,12 +46,18 @@ export function ListingDetail({
         
         // Check if saved (only if logged in)
         if (isUserLoggedIn) {
-          try {
-            const savedDeals = await apiService.getSavedDeals();
-            setIsSaved(savedDeals.some(b => String(b.id) === businessId));
-          } catch (error) {
-            // User might not be authenticated
-            console.error('Error checking saved status:', error);
+          // If savedDeals prop is provided, use it (from App.tsx)
+          if (savedDeals !== undefined) {
+            setIsSaved(savedDeals.includes(businessId));
+          } else {
+            // Otherwise, check from API
+            try {
+              const savedDealsData = await apiService.getSavedDeals();
+              setIsSaved(savedDealsData.some(b => String(b.id) === businessId));
+            } catch (error) {
+              // User might not be authenticated
+              console.error('Error checking saved status:', error);
+            }
           }
         }
       } catch (error: any) {
@@ -58,7 +68,7 @@ export function ListingDetail({
     };
 
     fetchBusiness();
-  }, [businessId, isUserLoggedIn]);
+  }, [businessId, isUserLoggedIn, savedDeals]);
 
   const handleToggleSave = async () => {
     if (!isUserLoggedIn) {
@@ -67,6 +77,14 @@ export function ListingDetail({
       return;
     }
 
+    // If onToggleSave callback is provided, use it (App.tsx handles API call)
+    if (onToggleSave) {
+      onToggleSave(businessId);
+      setIsSaved(prev => !prev);
+      return;
+    }
+
+    // Otherwise, handle API call here
     setIsSaving(true);
     try {
       const result = await apiService.toggleSavedDeal(businessId);

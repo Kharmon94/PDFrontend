@@ -3,6 +3,7 @@ import { Heart, Eye, TrendingUp, MapPin, Phone, Mail, Globe, Clock, Star, Tag, X
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
+import { DashboardSwitcher } from './dashboard-switcher';
 import { AdminDashboard } from './admin-dashboard';
 import { PartnerDashboard } from './partner-dashboard';
 import { DistributionPartnerDashboard } from './distribution-partner-dashboard';
@@ -14,11 +15,14 @@ import { toast } from 'sonner@2.0.3';
 interface UserDashboardProps {
   userType: 'user' | 'partner' | 'distribution' | 'admin';
   userName: string;
+  savedDeals?: string[];
   onNavigate: (page: string) => void;
+  onDashboardTypeChange?: (type: 'user' | 'partner' | 'distribution' | 'admin') => void;
   isUserLoggedIn?: boolean;
+  onToggleSave?: (businessId: string) => void;
 }
 
-export function UserDashboard({ userType, userName, onNavigate, isUserLoggedIn = true }: UserDashboardProps) {
+export function UserDashboard({ userType, userName, savedDeals = [], onNavigate, onDashboardTypeChange, isUserLoggedIn = true, onToggleSave }: UserDashboardProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [selectedRecommendation, setSelectedRecommendation] = useState<string | null>(null);
 
@@ -120,6 +124,9 @@ export function UserDashboard({ userType, userName, onNavigate, isUserLoggedIn =
 
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {onDashboardTypeChange && (
+          <DashboardSwitcher currentType={userType} onTypeChange={onDashboardTypeChange} />
+        )}
         <div className="mb-8">
           <h1 className="mb-2">Welcome back, {userName}!</h1>
           <p className="text-muted-foreground">Here's what's happening with your saved deals</p>
