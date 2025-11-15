@@ -6,8 +6,7 @@ import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Textarea } from './ui/textarea';
-import logoImage from '../assets/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
-import { apiService } from '../services/api';
+import { apiService, STATIC_ASSETS } from '../services/api';
 import { toast } from 'sonner@2.0.3';
 
 interface BusinessLoginProps {
@@ -151,7 +150,7 @@ export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: Busines
 
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8">
-            <img src={logoImage} alt="Preferred Deals" className="h-10 hidden lg:block" />
+            <img src={STATIC_ASSETS.logoLight} alt="Preferred Deals" className="h-10 hidden lg:block" />
           </div>
 
           <Tabs defaultValue={defaultTab} className="w-full">

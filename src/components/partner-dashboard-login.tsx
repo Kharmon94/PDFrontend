@@ -5,8 +5,7 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Textarea } from './ui/textarea';
-import logoImage from '../assets/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
-import { apiService } from '../services/api';
+import { apiService, STATIC_ASSETS } from '../services/api';
 import { toast } from 'sonner@2.0.3';
 
 interface PartnerDashboardLoginProps {

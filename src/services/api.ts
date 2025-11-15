@@ -9,6 +9,21 @@ declare global {
 
 const API_BASE_URL = window.REACT_APP_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:3001/api/v1';
 
+// Get the base URL for static assets (remove /api/v1 suffix if present)
+export const getStaticAssetUrl = (filename: string): string => {
+  const baseUrl = window.REACT_APP_API_URL || process.env.REACT_APP_API_URL || 'http://localhost:3001';
+  // Remove /api/v1 suffix if present
+  const cleanBaseUrl = baseUrl.replace(/\/api\/v1$/, '');
+  return `${cleanBaseUrl}/${filename}`;
+};
+
+// Static asset URLs
+export const STATIC_ASSETS = {
+  favicon: getStaticAssetUrl('Preferred.Deals_Favicon.png'),
+  logoLight: getStaticAssetUrl('Preferred.Deals_Black_Logo_No_BG.png'),
+  logoDark: getStaticAssetUrl('Preferred.Deals_White_Logo_No_BG.png'),
+};
+
 // Log the API URL being used (for debugging)
 console.log('API_BASE_URL:', API_BASE_URL);
 

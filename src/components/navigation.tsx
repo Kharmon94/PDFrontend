@@ -1,8 +1,7 @@
-import logoImage from '../assets/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
-import logoDarkImage from '../assets/086e1f0668410f07828122542aa5c045739f737a.png';
 import { Menu, X } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from './ui/button';
+import { STATIC_ASSETS } from '../services/api';
 
 type Page = 'home' | 'directory' | 'become-partner' | 'dashboard' | 'distribution-partner' | 'saved-deals' | 'login' | 'user-dashboard' | 'settings' | 'about' | 'contact-us' | 'list-your-business';
 
@@ -39,7 +38,7 @@ export function Navigation({ currentPage, onNavigate, isDarkMode }: NavigationPr
         <div className="flex justify-between items-center h-16 md:h-16">
           {/* Logo */}
           <button onClick={() => handleNavigate('home')} className="flex items-center md:flex-none absolute left-1/2 -translate-x-1/2 md:relative md:left-auto md:translate-x-0">
-            <img src={isDarkMode ? logoDarkImage : logoImage} alt="Preferred Deals" className="h-12 sm:h-14 md:h-12" />
+            <img src={isDarkMode ? STATIC_ASSETS.logoDark : STATIC_ASSETS.logoLight} alt="Preferred Deals" className="h-12 sm:h-14 md:h-12" />
           </button>
 
           {/* Desktop Menu */}

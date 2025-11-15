@@ -1,7 +1,7 @@
 import { Building2, Mail, Facebook, Twitter, Instagram, Linkedin, Users, Handshake, Clock } from 'lucide-react';
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
-import logoImage from '../assets/dd3bfa837dfa92a5643677141b8779a2931011b6.png';
+import { STATIC_ASSETS } from '../services/api';
 
 type Page = 'home' | 'directory' | 'list-your-business' | 'manage-your-listing' | 'become-partner' | 'distribution-partner' | 'partner-dashboard-login' | 'about' | 'contact-us' | 'terms' | 'privacy' | 'cookies';
 
@@ -24,7 +24,7 @@ export function Footer({ onNavigate }: FooterProps) {
           {/* Company Info */}
           <div className="space-y-4">
             <button onClick={() => handleNavigate('home')} className="flex items-center">
-              <img src={logoImage} alt="Preferred Deals" className="h-10 brightness-0 invert" />
+              <img src={STATIC_ASSETS.logoLight} alt="Preferred Deals" className="h-10 brightness-0 invert" />
             </button>
             <p className="text-sm">
               Connecting local businesses with their communities. Discover the best deals and services in your area.
