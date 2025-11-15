@@ -111,7 +111,13 @@ export default function App() {
     setUserName(user.name);
     setUserType(user.user_type);
     setIsUserLoggedIn(true);
-    setCurrentPage('directory');
+    
+    // Redirect to appropriate dashboard based on user type
+    if (user.user_type === 'admin' || user.user_type === 'partner' || user.user_type === 'distribution') {
+      setCurrentPage('user-dashboard');
+    } else {
+      setCurrentPage('directory');
+    }
   };
 
   const handleUserLogout = () => {

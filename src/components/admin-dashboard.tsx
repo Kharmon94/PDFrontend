@@ -57,9 +57,30 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     const fetchStats = async () => {
       try {
         const stats = await apiService.getAdminStats();
-        setPlatformStats(stats);
+        // Transform snake_case to camelCase for consistency
+        const transformedStats = stats ? {
+          total_businesses: stats.total_businesses || stats.totalBusinesses || 0,
+          total_users: stats.total_users || stats.totalUsers || 0,
+          featured_businesses: stats.featured_businesses || stats.featuredBusinesses || 0,
+          businesses_with_deals: stats.businesses_with_deals || stats.businessesWithDeals || 0,
+          total_partners: stats.total_partners || stats.totalPartners || 0,
+          recent_signups: stats.recent_signups || stats.recentSignups || 0,
+          pendingApprovals: stats.pending_approvals || stats.pendingApprovals || 0
+        } : {};
+        setPlatformStats(transformedStats);
       } catch (error: any) {
+        console.error('Failed to load admin stats:', error);
         toast.error(error.message || 'Failed to load stats');
+        // Set empty stats so the component can still render
+        setPlatformStats({
+          total_businesses: 0,
+          total_users: 0,
+          featured_businesses: 0,
+          businesses_with_deals: 0,
+          total_partners: 0,
+          recent_signups: 0,
+          pendingApprovals: 0
+        });
       } finally {
         setIsLoading(false);
       }
@@ -157,6 +178,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
   const pendingApprovals: any[] = [];
   const locations: any[] = [];
   const distributors: any[] = [];
+  const activeDistributors: any[] = []; // Empty array for now until backend API is added
 
   // Show loading state
   if (isLoading) {
