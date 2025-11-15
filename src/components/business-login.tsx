@@ -88,7 +88,7 @@ export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: Busines
       
       toast.success('Account created! Creating your business...');
       
-      // Create the business listing
+      // Create the business listing with logo file if provided
       await apiService.createBusiness({
         name: signupData.businessName,
         category: signupData.category,
@@ -100,7 +100,7 @@ export function BusinessLogin({ onBack, onLogin, defaultTab = 'login' }: Busines
         has_deals: signupData.listingType === 'paid',
         deal_description: signupData.offerTitle || undefined,
         featured: signupData.listingType === 'paid'
-      });
+      }, signupData.logo ? { image: signupData.logo } : undefined);
       
       toast.success('Business created successfully!');
       onLogin();

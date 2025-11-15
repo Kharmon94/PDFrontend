@@ -21,9 +21,14 @@ class ApiService {
 
   private async request(endpoint: string, options: RequestInit = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
+    
+    // Check if body is FormData (for file uploads)
+    const isFormData = options.body instanceof FormData;
+    
     const config: RequestInit = {
       headers: {
-        'Content-Type': 'application/json',
+        // Don't set Content-Type for FormData - browser will set it with boundary
+        ...(!isFormData && { 'Content-Type': 'application/json' }),
         ...options.headers,
       },
       ...options,
@@ -121,18 +126,106 @@ class ApiService {
     return this.request(`/businesses/autocomplete?query=${encodeURIComponent(query)}`);
   }
 
-  async createBusiness(businessData: any): Promise<Business> {
-    return this.request('/businesses', {
-      method: 'POST',
-      body: JSON.stringify({ business: businessData }),
-    });
+  async createBusiness(businessData: any, files?: { image?: File; gallery_images?: File[] }): Promise<Business> {
+    // If files are provided, use FormData; otherwise use JSON
+    if (files?.image || files?.gallery_images) {
+      const formData = new FormData();
+      
+      // Add all business data fields
+      Object.keys(businessData).forEach(key => {
+        const value = businessData[key];
+        if (value !== null && value !== undefined) {
+          if (Array.isArray(value)) {
+            // Handle array fields (like amenities, gallery URLs)
+            value.forEach((item, index) => {
+              if (typeof item === 'object') {
+                formData.append(`business[${key}][${index}]`, JSON.stringify(item));
+              } else {
+                formData.append(`business[${key}][${index}]`, String(item));
+              }
+            });
+          } else if (typeof value === 'object') {
+            // Handle object fields (like hours)
+            formData.append(`business[${key}]`, JSON.stringify(value));
+          } else {
+            formData.append(`business[${key}]`, String(value));
+          }
+        }
+      });
+      
+      // Add image file
+      if (files.image) {
+        formData.append('business[image]', files.image);
+      }
+      
+      // Add gallery images
+      if (files.gallery_images) {
+        files.gallery_images.forEach((file, index) => {
+          formData.append(`business[gallery_images][]`, file);
+        });
+      }
+      
+      return this.request('/businesses', {
+        method: 'POST',
+        body: formData,
+      });
+    } else {
+      return this.request('/businesses', {
+        method: 'POST',
+        body: JSON.stringify({ business: businessData }),
+      });
+    }
   }
 
-  async updateBusiness(id: string, businessData: any): Promise<Business> {
-    return this.request(`/businesses/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ business: businessData }),
-    });
+  async updateBusiness(id: string, businessData: any, files?: { image?: File; gallery_images?: File[] }): Promise<Business> {
+    // If files are provided, use FormData; otherwise use JSON
+    if (files?.image || files?.gallery_images) {
+      const formData = new FormData();
+      
+      // Add all business data fields
+      Object.keys(businessData).forEach(key => {
+        const value = businessData[key];
+        if (value !== null && value !== undefined) {
+          if (Array.isArray(value)) {
+            // Handle array fields
+            value.forEach((item, index) => {
+              if (typeof item === 'object') {
+                formData.append(`business[${key}][${index}]`, JSON.stringify(item));
+              } else {
+                formData.append(`business[${key}][${index}]`, String(item));
+              }
+            });
+          } else if (typeof value === 'object') {
+            // Handle object fields
+            formData.append(`business[${key}]`, JSON.stringify(value));
+          } else {
+            formData.append(`business[${key}]`, String(value));
+          }
+        }
+      });
+      
+      // Add image file
+      if (files.image) {
+        formData.append('business[image]', files.image);
+      }
+      
+      // Add gallery images
+      if (files.gallery_images) {
+        files.gallery_images.forEach((file) => {
+          formData.append(`business[gallery_images][]`, file);
+        });
+      }
+      
+      return this.request(`/businesses/${id}`, {
+        method: 'PUT',
+        body: formData,
+      });
+    } else {
+      return this.request(`/businesses/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ business: businessData }),
+      });
+    }
   }
 
   async deleteBusiness(id: string): Promise<void> {
@@ -273,11 +366,25 @@ class ApiService {
     return this.request('/users/profile');
   }
 
-  async updateUserProfile(data: { name?: string; email?: string }): Promise<{ user: any; message: string }> {
-    return this.request('/users/profile', {
-      method: 'PATCH',
-      body: JSON.stringify({ user: data }),
-    });
+  async updateUserProfile(data: { name?: string; email?: string; avatar?: File }): Promise<{ user: any; message: string }> {
+    // If avatar file is provided, use FormData; otherwise use JSON
+    if (data.avatar) {
+      const formData = new FormData();
+      
+      if (data.name) formData.append('user[name]', data.name);
+      if (data.email) formData.append('user[email]', data.email);
+      formData.append('user[avatar]', data.avatar);
+      
+      return this.request('/users/profile', {
+        method: 'PATCH',
+        body: formData,
+      });
+    } else {
+      return this.request('/users/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ user: data }),
+      });
+    }
   }
 
   async updatePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {

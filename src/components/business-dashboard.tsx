@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Edit, Eye, TrendingUp, Users, Phone, Mail, DollarSign, Globe } from 'lucide-react';
+import { Edit, Eye, TrendingUp, Users, Phone, Mail, DollarSign, Globe, Upload, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
@@ -45,6 +45,10 @@ export function BusinessDashboard({ businessId }: BusinessDashboardProps) {
     has_deals: false,
     featured: false,
   });
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  const [galleryPreviews, setGalleryPreviews] = useState<string[]>([]);
 
   // Fetch business data and analytics
   useEffect(() => {
@@ -115,9 +119,21 @@ export function BusinessDashboard({ businessId }: BusinessDashboardProps) {
     
     setIsSaving(true);
     try {
-      await apiService.updateBusiness(String(business.id), formData);
+      // Prepare files object if images are provided
+      const files = (imageFile || galleryFiles.length > 0) ? {
+        image: imageFile || undefined,
+        gallery_images: galleryFiles.length > 0 ? galleryFiles : undefined
+      } : undefined;
+      
+      await apiService.updateBusiness(String(business.id), formData, files);
       toast.success('Business updated successfully!');
       setIsEditing(false);
+      
+      // Clear file selections
+      setImageFile(null);
+      setImagePreview(null);
+      setGalleryFiles([]);
+      setGalleryPreviews([]);
       
       // Refetch business data
       const updatedBusiness = await apiService.getBusiness(String(business.id));
@@ -127,6 +143,39 @@ export function BusinessDashboard({ businessId }: BusinessDashboardProps) {
     } finally {
       setIsSaving(false);
     }
+  };
+  
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  const handleGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setGalleryFiles(prev => [...prev, ...files]);
+      // Create preview URLs
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setGalleryPreviews(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+  
+  const removeGalleryImage = (index: number) => {
+    setGalleryFiles(prev => prev.filter((_, i) => i !== index));
+    setGalleryPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleChange = (field: string, value: string | boolean) => {
@@ -336,7 +385,18 @@ export function BusinessDashboard({ businessId }: BusinessDashboardProps) {
                     <Button onClick={handleSave} disabled={isSaving}>
                       {isSaving ? 'Saving...' : 'Save Changes'}
                     </Button>
-                    <Button onClick={() => setIsEditing(false)} variant="outline" disabled={isSaving}>
+                    <Button 
+                      onClick={() => {
+                        setIsEditing(false);
+                        // Clear file selections when canceling
+                        setImageFile(null);
+                        setImagePreview(null);
+                        setGalleryFiles([]);
+                        setGalleryPreviews([]);
+                      }} 
+                      variant="outline" 
+                      disabled={isSaving}
+                    >
                       Cancel
                     </Button>
                   </div>
@@ -366,6 +426,107 @@ export function BusinessDashboard({ businessId }: BusinessDashboardProps) {
                   className="min-h-24"
                 />
               </div>
+
+              {/* Business Image Upload */}
+              {isEditing && (
+                <div className="space-y-2">
+                  <Label htmlFor="image">Business Image</Label>
+                  <div className="flex gap-4 items-start">
+                    {(imagePreview || business?.image) && (
+                      <div className="relative w-32 h-32 rounded-lg overflow-hidden border">
+                        <img
+                          src={imagePreview || business?.image || ''}
+                          alt="Business preview"
+                          className="w-full h-full object-cover"
+                        />
+                        {imagePreview && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setImageFile(null);
+                              setImagePreview(null);
+                            }}
+                            className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <Input
+                        id="image"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        disabled={!isEditing}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="image"
+                        className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
+                      >
+                        <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                        <p className="text-sm text-gray-600">Click to upload image</p>
+                        <p className="text-xs text-gray-500 mt-1">PNG, JPG up to 10MB</p>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Gallery Images Upload */}
+              {isEditing && (
+                <div className="space-y-2">
+                  <Label htmlFor="gallery">Gallery Images</Label>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {/* Existing gallery images */}
+                    {business?.gallery?.map((url, index) => (
+                      <div key={`existing-${index}`} className="relative w-full aspect-square rounded-lg overflow-hidden border">
+                        <img
+                          src={url}
+                          alt={`Gallery ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ))}
+                    {/* Preview new gallery images */}
+                    {galleryPreviews.map((preview, index) => (
+                      <div key={`new-${index}`} className="relative w-full aspect-square rounded-lg overflow-hidden border">
+                        <img
+                          src={preview}
+                          alt={`New gallery ${index + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => removeGalleryImage(index)}
+                          className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {/* Upload button */}
+                    <label
+                      htmlFor="gallery"
+                      className="flex flex-col items-center justify-center w-full aspect-square border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
+                    >
+                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                      <p className="text-xs text-gray-600 text-center px-2">Add photos</p>
+                    </label>
+                    <Input
+                      id="gallery"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleGalleryChange}
+                      disabled={!isEditing}
+                      className="hidden"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Contact Info */}
               <div className="grid md:grid-cols-2 gap-4">

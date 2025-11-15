@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, User, Bell, Shield, Palette, Globe, CreditCard, Trash2, MapPin, Plus, Edit, Save, X } from 'lucide-react';
+import { ArrowLeft, User, Bell, Shield, Palette, Globe, CreditCard, Trash2, MapPin, Plus, Edit, Save, X, Upload } from 'lucide-react';
 import { apiService } from '../services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -39,6 +39,9 @@ export function Settings({ onBack, userName, userEmail, isDarkMode, onToggleThem
   const [pushNotifications, setPushNotifications] = useState(true);
   const [dealAlerts, setDealAlerts] = useState(true);
   const [newsletter, setNewsletter] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [profileData, setProfileData] = useState({ name: userName, email: userEmail });
@@ -108,16 +111,51 @@ export function Settings({ onBack, userName, userEmail, isDarkMode, onToggleThem
     try {
       const response = await apiService.updateUserProfile({
         name: profileData.name,
-        email: profileData.email
+        email: profileData.email,
+        avatar: avatarFile || undefined
       });
       toast.success(response.message || 'Profile updated successfully');
       setIsEditing(false);
+      
+      // Clear avatar file selection
+      setAvatarFile(null);
+      if (response.user?.avatar_url) {
+        setUserAvatar(response.user.avatar_url);
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to update profile');
     } finally {
       setIsSaving(false);
     }
   };
+  
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setAvatarFile(file);
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setAvatarPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+  
+  // Load user profile with avatar on mount
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      try {
+        const response = await apiService.getUserProfile();
+        if (response.user?.avatar_url) {
+          setUserAvatar(response.user.avatar_url);
+        }
+      } catch (error) {
+        // Silent fail - avatar is optional
+      }
+    };
+    loadUserProfile();
+  }, []);
 
   const handleChangePassword = async () => {
     if (passwordData.new !== passwordData.confirm) {
@@ -247,6 +285,50 @@ export function Settings({ onBack, userName, userEmail, isDarkMode, onToggleThem
                 <CardDescription>Update your personal information</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Avatar Upload */}
+                <div className="space-y-2">
+                  <Label>Profile Avatar</Label>
+                  <div className="flex gap-4 items-start">
+                    {(avatarPreview || userAvatar) && (
+                      <div className="relative w-24 h-24 rounded-full overflow-hidden border-2">
+                        <img
+                          src={avatarPreview || userAvatar || ''}
+                          alt="Avatar preview"
+                          className="w-full h-full object-cover"
+                        />
+                        {avatarPreview && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setAvatarFile(null);
+                              setAvatarPreview(null);
+                            }}
+                            className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    <div className="flex-1">
+                      <Input
+                        id="avatar"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarChange}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="avatar"
+                        className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50"
+                      >
+                        <Upload className="w-6 h-6 text-gray-400 mb-1" />
+                        <p className="text-xs text-gray-600">Click to upload avatar</p>
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
                   <Input 
