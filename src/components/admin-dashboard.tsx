@@ -50,9 +50,9 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
   const [userPagination, setUserPagination] = useState<any>(null);
   const [businessPagination, setBusinessPagination] = useState<any>(null);
   
-  // Derived data
-  const recentBusinesses = businesses.slice(0, 10);
-  const recentUsers = users.slice(0, 10);
+  // Derived data - ensure arrays are valid
+  const recentBusinesses = Array.isArray(businesses) ? businesses.slice(0, 10) : [];
+  const recentUsers = Array.isArray(users) ? users.slice(0, 10) : [];
 
   // Fetch platform stats on mount
   useEffect(() => {
@@ -645,7 +645,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0">
                 <div className="space-y-2 sm:space-y-3">
-                  {recentBusinesses.slice(0, 4).map((business) => (
+                  {(Array.isArray(recentBusinesses) ? recentBusinesses.slice(0, 4) : []).map((business) => (
                     <div key={business.id} className="flex items-center justify-between p-2 sm:p-3 border rounded-lg">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs sm:text-sm truncate">{business.name}</p>
@@ -667,7 +667,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0">
                 <div className="space-y-2 sm:space-y-3">
-                  {pendingApprovals.map((item) => (
+                  {(Array.isArray(pendingApprovals) ? pendingApprovals : []).map((item) => (
                     <div key={item.id} className="flex items-center justify-between p-2 sm:p-3 border rounded-lg gap-2">
                       <div className="min-w-0 flex-1">
                         <p className="text-xs sm:text-sm truncate">{item.name}</p>
@@ -706,7 +706,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                 ) : businesses.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">No businesses found</div>
                 ) : (
-                  businesses.map((business) => (
+                  (Array.isArray(businesses) ? businesses : []).map((business) => (
                   <div key={business.id} className="p-4 border rounded-lg space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0 flex-1">
@@ -765,7 +765,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {recentBusinesses.map((business) => (
+                    {(Array.isArray(recentBusinesses) ? recentBusinesses : []).map((business) => (
                       <TableRow key={business.id}>
                         <TableCell className="text-xs sm:text-sm">{business.name}</TableCell>
                         <TableCell className="text-xs sm:text-sm">{business.owner}</TableCell>
@@ -901,7 +901,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No users found</TableCell>
                       </TableRow>
                     ) : (
-                      users.map((user) => (
+                      {(Array.isArray(users) ? users : []).map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="text-xs sm:text-sm">{user.name}</TableCell>
                         <TableCell className="text-xs sm:text-sm">{user.email}</TableCell>
@@ -981,7 +981,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-muted-foreground">Total Businesses</p>
-                        <p className="text-xl sm:text-2xl">{locations.reduce((sum, loc) => sum + (Number(loc.totalBusinesses) || 0), 0).toLocaleString()}</p>
+                        <p className="text-xl sm:text-2xl">{(Array.isArray(locations) ? locations.reduce((sum, loc) => sum + (Number(loc?.totalBusinesses) || 0), 0) : 0).toLocaleString()}</p>
                       </div>
                       <Package className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
@@ -992,7 +992,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-muted-foreground">Active Deals</p>
-                        <p className="text-xl sm:text-2xl">{locations.reduce((sum, loc) => sum + (Number(loc.activeDeals) || 0), 0).toLocaleString()}</p>
+                        <p className="text-xl sm:text-2xl">{(Array.isArray(locations) ? locations.reduce((sum, loc) => sum + (Number(loc?.activeDeals) || 0), 0) : 0).toLocaleString()}</p>
                       </div>
                       <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
@@ -1003,7 +1003,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-muted-foreground">Total Users</p>
-                        <p className="text-xl sm:text-2xl">{locations.reduce((sum, loc) => sum + (Number(loc.totalUsers) || 0), 0).toLocaleString()}</p>
+                        <p className="text-xl sm:text-2xl">{(Array.isArray(locations) ? locations.reduce((sum, loc) => sum + (Number(loc?.totalUsers) || 0), 0) : 0).toLocaleString()}</p>
                       </div>
                       <Users className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
@@ -1029,7 +1029,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                 <>
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3">
-                {locations.map((location) => (
+                {(Array.isArray(locations) ? locations : []).map((location) => (
                   <div key={location.id} className="p-4 border rounded-lg space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0 flex-1">
@@ -1107,7 +1107,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No locations found</TableCell>
                       </TableRow>
                     ) : (
-                      locations.map((location) => (
+                      {(Array.isArray(locations) ? locations : []).map((location) => (
                       <TableRow key={location.id}>
                         <TableCell className="text-xs sm:text-sm">
                           <div className="flex items-center gap-2">
@@ -1173,7 +1173,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0">
                 <div className="space-y-3 sm:space-y-4">
-                  {pendingApprovals.filter(item => item.type === 'Distributor').map((item) => (
+                  {(Array.isArray(pendingApprovals) ? pendingApprovals.filter(item => item.type === 'Distributor') : []).map((item) => (
                     <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border bg-white rounded-lg hover:bg-muted/50 transition-colors gap-3">
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -1219,7 +1219,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
               <div className="space-y-4">
-                {activeDistributors.map((distributor) => (
+                  {(Array.isArray(activeDistributors) ? activeDistributors : []).map((distributor) => (
                   <Card key={distributor.id} className="border-2">
                     <CardContent className="p-4">
                       <div className="flex flex-col lg:flex-row gap-4">
