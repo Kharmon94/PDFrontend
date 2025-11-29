@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+
+# Block common security scanner paths
+Disallow: /.env
+Disallow: /.git
+Disallow: /api/.env
+Disallow: /dev/.env
+Disallow: /sendgrid.env
+Disallow: /twilio.env
+
+Sitemap: https://www.preferred.deals/sitemap.xml
+

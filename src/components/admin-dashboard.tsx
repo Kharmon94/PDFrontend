@@ -1137,7 +1137,8 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                           </DropdownMenu>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
