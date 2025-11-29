@@ -118,6 +118,13 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     }
   }, [activeTab]);
 
+  // Fetch pending approvals when tab changes
+  useEffect(() => {
+    if (activeTab === 'approvals') {
+      fetchPendingApprovals();
+    }
+  }, [activeTab]);
+
   const fetchDistributors = async () => {
     setIsLoadingDistributors(true);
     try {
@@ -129,6 +136,30 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
       setActiveDistributors([]);
     } finally {
       setIsLoadingDistributors(false);
+    }
+  };
+
+  const fetchPendingApprovals = async () => {
+    setIsLoadingApprovals(true);
+    try {
+      const response = await apiService.getPendingApprovals();
+      const businesses = Array.isArray(response.businesses) ? response.businesses : [];
+      // Transform businesses to approval items format
+      const approvals = businesses.map((business: any) => ({
+        id: business.id,
+        name: business.name,
+        type: 'Business',
+        requestedBy: business.user?.name || 'Unknown',
+        date: new Date(business.created_at).toLocaleDateString(),
+        business: business
+      }));
+      setPendingApprovals(approvals);
+    } catch (error: any) {
+      console.error('Failed to load pending approvals:', error);
+      toast.error(error.message || 'Failed to load pending approvals');
+      setPendingApprovals([]);
+    } finally {
+      setIsLoadingApprovals(false);
     }
   };
 
@@ -204,11 +235,14 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     }
   };
 
-  // Legacy mock data for features not yet in backend (approvals, distributors)
-  const pendingApprovals: any[] = [];
+  // Legacy mock data for features not yet in backend
   const distributors: any[] = [];
   const [activeDistributors, setActiveDistributors] = useState<any[]>([]);
   const [isLoadingDistributors, setIsLoadingDistributors] = useState(false);
+  
+  // Pending approvals state
+  const [pendingApprovals, setPendingApprovals] = useState<any[]>([]);
+  const [isLoadingApprovals, setIsLoadingApprovals] = useState(false);
 
   // Helper function to parse address and extract city/state
   const parseAddress = (address: string): { city: string; state: string } | null => {
@@ -221,16 +255,36 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     const parts = address.split(',').map(p => p.trim());
     
     if (parts.length >= 2) {
-      // Assume last part might be state, second to last might be city
-      const lastPart = parts[parts.length - 1];
-      const secondLastPart = parts[parts.length - 2];
+      // Address format from seed: "1234 Main Street, New York, NY 12345"
+      // After split: ["1234 Main Street", "New York", "NY 12345"]
+      const lastPart = parts[parts.length - 1].trim();
+      const secondLastPart = parts[parts.length - 2].trim();
       
-      // Check if last part looks like a state (2-3 letters or full state name)
-      const stateMatch = lastPart.match(/^([A-Z]{2,3})(?:\s+\d{5})?$/i);
-      if (stateMatch) {
+      // Check if last part looks like "State ZIP" (e.g., "NY 12345" or "CA 90210")
+      const stateWithZipMatch = lastPart.match(/^([A-Z]{2})\s+(\d{5})$/i);
+      if (stateWithZipMatch) {
         return {
           city: secondLastPart || 'Unknown',
-          state: stateMatch[1].toUpperCase()
+          state: stateWithZipMatch[1].toUpperCase()
+        };
+      }
+      
+      // Check if last part is just a state abbreviation (2 letters) without ZIP
+      const stateAbbrMatch = lastPart.match(/^([A-Z]{2})$/i);
+      if (stateAbbrMatch) {
+        return {
+          city: secondLastPart || 'Unknown',
+          state: stateAbbrMatch[1].toUpperCase()
+        };
+      }
+      
+      // Try to extract state from last part that might have ZIP at the end
+      // e.g., "NY12345" or "NY 12345" at the end of the string
+      const stateAtEndMatch = lastPart.match(/([A-Z]{2})(?:\s+\d{5})?$/i);
+      if (stateAtEndMatch && parts.length >= 2) {
+        return {
+          city: secondLastPart || 'Unknown',
+          state: stateAtEndMatch[1].toUpperCase()
         };
       }
       
@@ -281,17 +335,8 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
           : [];
       
       // Group businesses by location (city, state)
-      // Safely create Map - ensure Map constructor is available
-      let locationMap: Map<string, { city: string; state: string; businesses: any[] }>;
-      try {
-        locationMap = new Map();
-      } catch (e) {
-        console.error('Error creating Map:', e);
-        // Fallback to plain object if Map is not available
-        setLocations([]);
-        setIsLoadingLocations(false);
-        return;
-      }
+      // Use plain object instead of Map for better compatibility
+      const locationMap: Record<string, { city: string; state: string; businesses: any[] }> = {};
       
       if (Array.isArray(allBusinesses) && allBusinesses.length > 0) {
         allBusinesses.forEach((business: any) => {
@@ -301,29 +346,22 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
           if (!parsed) return;
           
           const key = `${parsed.city}, ${parsed.state}`;
-          if (!locationMap.has(key)) {
-            locationMap.set(key, {
+          if (!locationMap[key]) {
+            locationMap[key] = {
               city: parsed.city || 'Unknown',
               state: parsed.state || 'Unknown',
               businesses: []
-            });
+            };
           }
-          const locationData = locationMap.get(key);
+          const locationData = locationMap[key];
           if (locationData && Array.isArray(locationData.businesses)) {
             locationData.businesses.push(business);
           }
         });
       }
       
-      // Convert map to location objects with statistics
-      // Safely convert Map to array
-      let locationEntries: Array<[string, { city: string; state: string; businesses: any[] }]>;
-      try {
-        locationEntries = Array.from(locationMap.entries());
-      } catch (e) {
-        console.error('Error converting Map to array:', e);
-        locationEntries = [];
-      }
+      // Convert object to location objects with statistics
+      const locationEntries = Object.entries(locationMap);
       
       const locationData = locationEntries.map(([key, data], index) => {
         const locationBusinesses = Array.isArray(data.businesses) ? data.businesses : [];
@@ -344,14 +382,8 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
             return id != null && (typeof id === 'string' || typeof id === 'number');
           });
         
-        // Safely create Set - ensure Set constructor is available
-        let uniqueUserIds: Set<string | number>;
-        try {
-          uniqueUserIds = new Set(userIds);
-        } catch (e) {
-          console.error('Error creating Set:', e, 'userIds:', userIds);
-          uniqueUserIds = new Set([]);
-        }
+        // Get unique user IDs using array filter instead of Set for better compatibility
+        const uniqueUserIds = userIds.filter((id, idx, arr) => arr.indexOf(id) === idx);
         
         return {
           id: index + 1,
@@ -360,7 +392,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
           totalBusinesses: Number(locationBusinesses.length) || 0,
           activeDeals: Number(businessesWithDeals.length) || 0,
           monthlyGrowth: Number(monthlyGrowth) || 0,
-          totalUsers: Number(uniqueUserIds.size) || 0,
+          totalUsers: Number(uniqueUserIds.length) || 0,
           status: 'Active' as const,
           totalRevenue: 0 // Placeholder
         };
@@ -464,6 +496,10 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
       // Refresh stats to update pending approvals count
       const stats = await apiService.getAdminStats();
       setPlatformStats(stats);
+      // Refresh pending approvals list if on approvals tab
+      if (activeTab === 'approvals') {
+        fetchPendingApprovals();
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to approve item');
     }
@@ -490,6 +526,10 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
       // Refresh stats to update pending approvals count
       const stats = await apiService.getAdminStats();
       setPlatformStats(stats);
+      // Refresh pending approvals list if on approvals tab
+      if (activeTab === 'approvals') {
+        fetchPendingApprovals();
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to reject item');
     }
@@ -1414,8 +1454,13 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
               <CardDescription className="text-xs sm:text-sm">Review and approve pending items</CardDescription>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
-              <div className="space-y-3 sm:space-y-4">
-                {pendingApprovals.map((item) => (
+              {isLoadingApprovals ? (
+                <div className="text-center py-8 text-muted-foreground">Loading approvals...</div>
+              ) : pendingApprovals.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No pending approvals</div>
+              ) : (
+                <div className="space-y-3 sm:space-y-4">
+                {(Array.isArray(pendingApprovals) ? pendingApprovals : []).map((item) => (
                   <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border rounded-lg hover:bg-muted/50 transition-colors gap-3">
                     <div className="flex-1 cursor-pointer" onClick={() => handleApprovalAction(item, 'view')}>
                       <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -1442,7 +1487,8 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     </div>
                   </div>
                 ))}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
