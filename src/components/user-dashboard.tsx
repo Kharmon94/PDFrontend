@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Heart, Eye, TrendingUp, MapPin, Phone, Mail, Globe, Clock, Star, Tag, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -10,6 +10,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import { Separator } from './ui/separator';
 import { toast } from 'sonner@2.0.3';
+import { apiService } from '../services/api';
+import { Business } from '../types';
 
 interface UserDashboardProps {
   userType: 'user' | 'partner' | 'distribution' | 'admin';
@@ -24,91 +26,34 @@ interface UserDashboardProps {
 export function UserDashboard({ userType, userName, savedDeals = [], onNavigate, isUserLoggedIn = true, onToggleSave, onLogout }: UserDashboardProps) {
   const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'year'>('month');
   const [selectedRecommendation, setSelectedRecommendation] = useState<string | null>(null);
+  const [recommendations, setRecommendations] = useState<Business[]>([]);
+  const [isLoadingRecommendations, setIsLoadingRecommendations] = useState(false);
 
   // Regular User Dashboard
   if (userType === 'user') {
-    const recentActivity = [
-      { action: 'Saved deal', business: 'Fresh Bistro', date: '2 hours ago' },
-      { action: 'Viewed listing', business: 'Wellness Spa', date: '1 day ago' },
-      { action: 'Saved deal', business: 'Tech Repair Pro', date: '3 days ago' },
-    ];
+    // Fetch recommendations (featured businesses with deals)
+    useEffect(() => {
+      const fetchRecommendations = async () => {
+        if (!isUserLoggedIn) return;
+        setIsLoadingRecommendations(true);
+        try {
+          const businesses = await apiService.getBusinesses({ featured: true, deals: true });
+          // Limit to top 5 recommendations
+          setRecommendations(businesses.slice(0, 5));
+        } catch (error) {
+          console.error('Failed to load recommendations:', error);
+          // Keep empty array on error
+        } finally {
+          setIsLoadingRecommendations(false);
+        }
+      };
+      fetchRecommendations();
+    }, [isUserLoggedIn]);
 
-    const recommendations = [
-      { 
-        id: '1', 
-        name: 'Bella Salon', 
-        category: 'Beauty', 
-        deal: '20% off first visit', 
-        distance: '0.5 mi',
-        description: 'Full-service salon offering haircuts, styling, coloring, and beauty treatments. Our experienced stylists will help you look and feel your best.',
-        address: '456 Beauty Lane, Downtown',
-        phone: '(555) 234-5678',
-        email: 'info@bellasalon.com',
-        website: 'www.bellasalon.com',
-        rating: 4.7,
-        reviewCount: 92,
-        image: 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=800&q=80',
-        hours: {
-          monday: '9:00 AM - 7:00 PM',
-          tuesday: '9:00 AM - 7:00 PM',
-          wednesday: '9:00 AM - 7:00 PM',
-          thursday: '9:00 AM - 8:00 PM',
-          friday: '9:00 AM - 8:00 PM',
-          saturday: '8:00 AM - 6:00 PM',
-          sunday: 'Closed',
-        },
-      },
-      { 
-        id: '2', 
-        name: 'FitLife Gym', 
-        category: 'Health', 
-        deal: 'Free trial week', 
-        distance: '1.2 mi',
-        description: 'State-of-the-art fitness facility with top-notch equipment, personal trainers, and group fitness classes. Start your fitness journey with us!',
-        address: '789 Fitness Drive',
-        phone: '(555) 345-6789',
-        email: 'info@fitlifegym.com',
-        website: 'www.fitlifegym.com',
-        rating: 4.9,
-        reviewCount: 156,
-        image: 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=800&q=80',
-        hours: {
-          monday: '5:00 AM - 11:00 PM',
-          tuesday: '5:00 AM - 11:00 PM',
-          wednesday: '5:00 AM - 11:00 PM',
-          thursday: '5:00 AM - 11:00 PM',
-          friday: '5:00 AM - 10:00 PM',
-          saturday: '7:00 AM - 8:00 PM',
-          sunday: '7:00 AM - 8:00 PM',
-        },
-      },
-      { 
-        id: '3', 
-        name: 'Pasta Paradise', 
-        category: 'Dining', 
-        deal: 'Buy 1 Get 1 Free', 
-        distance: '0.8 mi',
-        description: 'Traditional Italian restaurant serving homemade pasta, wood-fired pizzas, and authentic Italian dishes made with fresh, locally-sourced ingredients.',
-        address: '321 Italian Way',
-        phone: '(555) 456-7890',
-        email: 'info@pastaparadise.com',
-        website: 'www.pastaparadise.com',
-        rating: 4.8,
-        reviewCount: 203,
-        image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&q=80',
-        hours: {
-          monday: '11:00 AM - 10:00 PM',
-          tuesday: '11:00 AM - 10:00 PM',
-          wednesday: '11:00 AM - 10:00 PM',
-          thursday: '11:00 AM - 10:00 PM',
-          friday: '11:00 AM - 11:00 PM',
-          saturday: '11:00 AM - 11:00 PM',
-          sunday: '12:00 PM - 9:00 PM',
-        },
-      },
-    ];
+    // Recent activity - placeholder (no backend endpoint yet)
+    const recentActivity: Array<{ action: string; business: string; date: string }> = [];
 
-    const selectedBusiness = recommendations.find(rec => rec.id === selectedRecommendation);
+    const selectedBusiness = recommendations.find(rec => String(rec.id) === selectedRecommendation);
     const isSaved = selectedRecommendation ? savedDeals.includes(selectedRecommendation) : false;
 
     const handleSaveToggle = (businessId: string) => {
@@ -172,17 +117,24 @@ export function UserDashboard({ userType, userName, savedDeals = [], onNavigate,
               <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between pb-4 border-b last:border-0">
-                    <div>
-                      <p className="mb-1">{activity.action}</p>
-                      <p className="text-sm text-muted-foreground">{activity.business}</p>
+              {recentActivity.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground mb-4">No recent activity</p>
+                  <p className="text-xs text-muted-foreground">Your activity history will appear here</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentActivity.map((activity, index) => (
+                    <div key={index} className="flex items-center justify-between pb-4 border-b last:border-0">
+                      <div>
+                        <p className="mb-1">{activity.action}</p>
+                        <p className="text-sm text-muted-foreground">{activity.business}</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">{activity.date}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">{activity.date}</p>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
               <Button variant="outline" className="w-full mt-4" onClick={() => onNavigate('saved-deals')}>
                 View All Saved Deals
               </Button>
@@ -192,27 +144,36 @@ export function UserDashboard({ userType, userName, savedDeals = [], onNavigate,
           <Card>
             <CardHeader>
               <CardTitle>Recommended for You</CardTitle>
-              <CardDescription>Based on your interests</CardDescription>
+              <CardDescription>Featured businesses with exclusive deals</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recommendations.map((rec, index) => (
-                  <div key={index} className="flex items-center justify-between pb-4 border-b last:border-0">
-                    <div className="flex-1">
-                      <p className="mb-1">{rec.name}</p>
-                      <p className="text-sm text-muted-foreground">{rec.deal}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <Badge variant="secondary" className="text-xs">{rec.category}</Badge>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {rec.distance}
-                        </span>
+              {isLoadingRecommendations ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground">Loading recommendations...</p>
+                </div>
+              ) : recommendations.length === 0 ? (
+                <div className="text-center py-8">
+                  <p className="text-sm text-muted-foreground mb-4">No recommendations available</p>
+                  <Button size="sm" variant="outline" onClick={() => onNavigate('directory')}>
+                    Browse Directory
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recommendations.map((rec) => (
+                    <div key={rec.id} className="flex items-center justify-between pb-4 border-b last:border-0">
+                      <div className="flex-1">
+                        <p className="mb-1">{rec.name}</p>
+                        {rec.deal && <p className="text-sm text-muted-foreground">{rec.deal}</p>}
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary" className="text-xs">{rec.category}</Badge>
+                        </div>
                       </div>
+                      <Button size="sm" onClick={() => setSelectedRecommendation(String(rec.id))}>View</Button>
                     </div>
-                    <Button size="sm" onClick={() => setSelectedRecommendation(rec.id)}>View</Button>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -259,15 +220,17 @@ export function UserDashboard({ userType, userName, savedDeals = [], onNavigate,
                     <p className="text-muted-foreground mb-4">{selectedBusiness.description}</p>
 
                     {/* Deal Highlight */}
-                    <div className="bg-red-50 border-2 border-red-500 rounded-lg p-4 mb-4">
-                      <div className="flex items-start gap-2">
-                        <Tag className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
-                        <div>
-                          <h3 className="text-red-700 mb-1">Current Deal</h3>
-                          <p className="text-red-700">{selectedBusiness.deal}</p>
+                    {selectedBusiness.deal && (
+                      <div className="bg-red-50 border-2 border-red-500 rounded-lg p-4 mb-4">
+                        <div className="flex items-start gap-2">
+                          <Tag className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                          <div>
+                            <h3 className="text-red-700 mb-1">Current Deal</h3>
+                            <p className="text-red-700">{selectedBusiness.deal}</p>
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   <Separator />
@@ -317,35 +280,33 @@ export function UserDashboard({ userType, userName, savedDeals = [], onNavigate,
                           </a>
                         </div>
                       )}
-                      <div className="flex items-start gap-3">
-                        <MapPin className="w-5 h-5 text-gray-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-600">{selectedBusiness.distance} away</span>
-                      </div>
                     </div>
                   </div>
 
                   <Separator />
 
                   {/* Business Hours */}
-                  <div>
-                    <div className="flex items-center gap-2 mb-3">
-                      <Clock className="w-5 h-5 text-gray-500" />
-                      <h3>Business Hours</h3>
+                  {selectedBusiness.hours && (
+                    <div>
+                      <div className="flex items-center gap-2 mb-3">
+                        <Clock className="w-5 h-5 text-gray-500" />
+                        <h3>Business Hours</h3>
+                      </div>
+                      <div className="space-y-2 text-sm">
+                        {daysOfWeek.map(day => (
+                          <div
+                            key={day}
+                            className={`flex justify-between ${
+                              day === today ? 'font-semibold text-gray-900' : 'text-gray-600'
+                            }`}
+                          >
+                            <span className="capitalize">{day}</span>
+                            <span>{selectedBusiness.hours?.[day] || 'Closed'}</span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-2 text-sm">
-                      {daysOfWeek.map(day => (
-                        <div
-                          key={day}
-                          className={`flex justify-between ${
-                            day === today ? 'font-semibold text-gray-900' : 'text-gray-600'
-                          }`}
-                        >
-                          <span className="capitalize">{day}</span>
-                          <span>{selectedBusiness.hours[day as keyof typeof selectedBusiness.hours]}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  )}
 
                   <Separator />
 

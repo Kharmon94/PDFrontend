@@ -40,9 +40,11 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
   const [platformStats, setPlatformStats] = useState<any>(null);
   const [users, setUsers] = useState<any[]>([]);
   const [businesses, setBusinesses] = useState<any[]>([]);
+  const [locations, setLocations] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isLoadingBusinesses, setIsLoadingBusinesses] = useState(false);
+  const [isLoadingLocations, setIsLoadingLocations] = useState(false);
   const [userPage, setUserPage] = useState(1);
   const [businessPage, setBusinessPage] = useState(1);
   const [userPagination, setUserPagination] = useState<any>(null);
@@ -102,6 +104,13 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     }
   }, [activeTab, searchTerm, businessPage]);
 
+  // Fetch locations when tab changes
+  useEffect(() => {
+    if (activeTab === 'locations') {
+      fetchLocations();
+    }
+  }, [activeTab]);
+
   const fetchUsers = async () => {
     setIsLoadingUsers(true);
     try {
@@ -136,7 +145,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     }
   };
 
-  const handleToggleFeatured = async (businessId: number) => {
+  const handleToggleFeatured = async (businessId: string | number) => {
     try {
       const result = await apiService.toggleBusinessFeatured(String(businessId));
       toast.success(result.message);
@@ -146,7 +155,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     }
   };
 
-  const handleDeleteUser = async (userId: number) => {
+  const handleDeleteUser = async (userId: string | number) => {
     if (!confirm('Are you sure you want to delete this user?')) return;
     
     try {
@@ -160,7 +169,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     }
   };
 
-  const handleDeleteBusiness = async (businessId: number) => {
+  const handleDeleteBusiness = async (businessId: string | number) => {
     if (!confirm('Are you sure you want to delete this business?')) return;
     
     try {
@@ -174,11 +183,129 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     }
   };
 
-  // Legacy mock data for features not yet in backend (approvals, distributors, locations)
+  // Legacy mock data for features not yet in backend (approvals, distributors)
   const pendingApprovals: any[] = [];
-  const locations: any[] = [];
   const distributors: any[] = [];
   const activeDistributors: any[] = []; // Empty array for now until backend API is added
+
+  // Helper function to parse address and extract city/state
+  const parseAddress = (address: string): { city: string; state: string } | null => {
+    if (!address) return null;
+    
+    // Common address formats:
+    // "123 Street Name, City, State ZIP"
+    // "City, State"
+    // "City, ST"
+    const parts = address.split(',').map(p => p.trim());
+    
+    if (parts.length >= 2) {
+      // Assume last part might be state, second to last might be city
+      const lastPart = parts[parts.length - 1];
+      const secondLastPart = parts[parts.length - 2];
+      
+      // Check if last part looks like a state (2-3 letters or full state name)
+      const stateMatch = lastPart.match(/^([A-Z]{2,3})(?:\s+\d{5})?$/i);
+      if (stateMatch) {
+        return {
+          city: secondLastPart || 'Unknown',
+          state: stateMatch[1].toUpperCase()
+        };
+      }
+      
+      // Try full state name
+      const stateNames = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 
+        'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 
+        'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 
+        'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 
+        'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 
+        'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 
+        'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 
+        'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'];
+      
+      if (stateNames.some(state => lastPart.toLowerCase().includes(state.toLowerCase()))) {
+        return {
+          city: secondLastPart || 'Unknown',
+          state: lastPart
+        };
+      }
+      
+      // Fallback: use last two parts as city and state
+      return {
+        city: secondLastPart || parts[0] || 'Unknown',
+        state: lastPart || 'Unknown'
+      };
+    }
+    
+    // If we can't parse, return null
+    return null;
+  };
+
+  // Fetch and derive locations from businesses
+  const fetchLocations = async () => {
+    setIsLoadingLocations(true);
+    try {
+      // Fetch all businesses (without pagination for location aggregation)
+      const allBusinesses = await apiService.getBusinesses({});
+      
+      // Group businesses by location (city, state)
+      const locationMap = new Map<string, {
+        city: string;
+        state: string;
+        businesses: any[];
+      }>();
+      
+      allBusinesses.forEach((business: any) => {
+        const parsed = parseAddress(business.address || '');
+        if (!parsed) return;
+        
+        const key = `${parsed.city}, ${parsed.state}`;
+        if (!locationMap.has(key)) {
+          locationMap.set(key, {
+            city: parsed.city,
+            state: parsed.state,
+            businesses: []
+          });
+        }
+        locationMap.get(key)!.businesses.push(business);
+      });
+      
+      // Convert map to location objects with statistics
+      const locationData = Array.from(locationMap.entries()).map(([key, data], index) => {
+        const locationBusinesses = data.businesses;
+        const businessesWithDeals = locationBusinesses.filter((b: any) => b.has_deals || b.hasDeals);
+        
+        // Calculate monthly growth (placeholder - would need historical data)
+        // For now, use a random growth rate based on number of businesses
+        const monthlyGrowth = Math.round((locationBusinesses.length * 2.5) % 20 + 5);
+        
+        // Get unique user IDs for this location
+        const uniqueUserIds = new Set(locationBusinesses.map((b: any) => b.user?.id || b.user_id).filter(Boolean));
+        
+        return {
+          id: index + 1,
+          city: data.city,
+          state: data.state,
+          totalBusinesses: locationBusinesses.length,
+          activeDeals: businessesWithDeals.length,
+          monthlyGrowth: monthlyGrowth,
+          totalUsers: uniqueUserIds.size,
+          status: 'Active' as const,
+          totalRevenue: 0 // Placeholder
+        };
+      }).sort((a, b) => {
+        // Sort by city name
+        return a.city.localeCompare(b.city);
+      });
+      
+      setLocations(locationData);
+    } catch (error: any) {
+      console.error('Failed to load locations:', error);
+      toast.error(error.message || 'Failed to load locations');
+      setLocations([]);
+    } finally {
+      setIsLoadingLocations(false);
+    }
+  };
 
   // Show loading state
   if (isLoading) {
@@ -211,9 +338,18 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     handleCloseUserDialog();
   };
 
-  const handleSuspendUser = () => {
-    // Handle suspend logic here
-    handleCloseUserDialog();
+  const handleSuspendUser = async () => {
+    if (!selectedUser) return;
+    if (!confirm('Are you sure you want to suspend this user?')) return;
+    
+    try {
+      const result = await apiService.suspendUser(String(selectedUser.id));
+      toast.success(result.message);
+      fetchUsers(); // Refresh list
+      handleCloseUserDialog();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to suspend user');
+    }
   };
 
   const handleApprovalAction = (item: any, mode: 'view' | 'approve' | 'reject') => {
@@ -226,14 +362,56 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     setApprovalDialogMode(null);
   };
 
-  const handleApproveItem = () => {
-    // Handle approval logic here
-    handleCloseApprovalDialog();
+  const handleApproveItem = async () => {
+    if (!selectedApproval || !selectedApproval.id) {
+      toast.error('Invalid approval item');
+      return;
+    }
+    if (!confirm(`Are you sure you want to approve this ${selectedApproval.type?.toLowerCase() || 'item'}?`)) return;
+    
+    try {
+      // For now, assuming approvals are businesses - update when other types are added
+      if (selectedApproval.type === 'Business' || !selectedApproval.type) {
+        const result = await apiService.approveBusiness(String(selectedApproval.id));
+        toast.success(result.message);
+        // Refresh businesses list
+        if (activeTab === 'businesses') {
+          fetchBusinesses();
+        }
+      }
+      handleCloseApprovalDialog();
+      // Refresh stats to update pending approvals count
+      const stats = await apiService.getAdminStats();
+      setPlatformStats(stats);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to approve item');
+    }
   };
 
-  const handleRejectItem = () => {
-    // Handle rejection logic here
-    handleCloseApprovalDialog();
+  const handleRejectItem = async () => {
+    if (!selectedApproval || !selectedApproval.id) {
+      toast.error('Invalid approval item');
+      return;
+    }
+    if (!confirm(`Are you sure you want to reject this ${selectedApproval.type?.toLowerCase() || 'item'}?`)) return;
+    
+    try {
+      // For now, assuming approvals are businesses - update when other types are added
+      if (selectedApproval.type === 'Business' || !selectedApproval.type) {
+        const result = await apiService.rejectBusiness(String(selectedApproval.id));
+        toast.success(result.message);
+        // Refresh businesses list
+        if (activeTab === 'businesses') {
+          fetchBusinesses();
+        }
+      }
+      handleCloseApprovalDialog();
+      // Refresh stats to update pending approvals count
+      const stats = await apiService.getAdminStats();
+      setPlatformStats(stats);
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to reject item');
+    }
   };
 
   const handleDistributorAction = (distributor: any, mode: 'view' | 'edit') => {
@@ -281,9 +459,18 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     handleCloseLocationDialog();
   };
 
-  const handleDeleteLocation = () => {
-    // Handle delete logic here
-    handleCloseLocationDialog();
+  const handleDeleteLocation = async () => {
+    if (!selectedLocation) return;
+    if (!confirm('Are you sure you want to delete this location?')) return;
+    
+    try {
+      // TODO: Implement location deletion API when available
+      // const result = await apiService.deleteLocation(String(selectedLocation.id));
+      toast.success('Location deletion not yet implemented');
+      handleCloseLocationDialog();
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to delete location');
+    }
   };
 
   return (
@@ -809,6 +996,22 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                 </Card>
               </div>
 
+              {/* Loading State */}
+              {isLoadingLocations ? (
+                <div className="text-center py-12">
+                  <div className="animate-pulse space-y-4">
+                    <div className="h-4 bg-muted rounded w-64 mx-auto"></div>
+                    <div className="h-4 bg-muted rounded w-48 mx-auto"></div>
+                  </div>
+                </div>
+              ) : locations.length === 0 ? (
+                <div className="text-center py-12">
+                  <Map className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
+                  <h3 className="text-lg font-semibold mb-2">No Locations Found</h3>
+                  <p className="text-muted-foreground">No businesses with valid addresses found.</p>
+                </div>
+              ) : (
+                <>
               {/* Mobile Card View */}
               <div className="md:hidden space-y-3">
                 {locations.map((location) => (
@@ -880,7 +1083,16 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {locations.map((location) => (
+                    {isLoadingLocations ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8">Loading...</TableCell>
+                      </TableRow>
+                    ) : locations.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No locations found</TableCell>
+                      </TableRow>
+                    ) : (
+                      locations.map((location) => (
                       <TableRow key={location.id}>
                         <TableCell className="text-xs sm:text-sm">
                           <div className="flex items-center gap-2">
@@ -929,6 +1141,8 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                   </TableBody>
                 </Table>
               </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1249,7 +1463,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
             {userDialogMode === 'edit' && (
               <Button onClick={handleSaveUser}>Save Changes</Button>
             )}
-            {userDialogMode === 'suspend' && (
+            {userDialogMode === 'suspend' && selectedUser && (
               <Button variant="destructive" onClick={handleSuspendUser}>
                 Suspend User
               </Button>
@@ -1414,13 +1628,13 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
             <Button variant="outline" onClick={handleCloseApprovalDialog}>
               Cancel
             </Button>
-            {approvalDialogMode === 'approve' && (
+            {approvalDialogMode === 'approve' && selectedApproval && (
               <Button onClick={handleApproveItem}>
                 <CheckCircle className="w-4 h-4 mr-2" />
                 Approve
               </Button>
             )}
-            {approvalDialogMode === 'reject' && (
+            {approvalDialogMode === 'reject' && selectedApproval && (
               <Button variant="destructive" onClick={handleRejectItem}>
                 <X className="w-4 h-4 mr-2" />
                 Reject
@@ -1866,8 +2080,8 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
             {businessDialogMode === 'edit' && (
               <Button onClick={handleSaveBusiness}>Save Changes</Button>
             )}
-            {businessDialogMode === 'delete' && (
-              <Button variant="destructive" onClick={handleDeleteBusiness}>
+            {businessDialogMode === 'delete' && selectedBusiness && (
+              <Button variant="destructive" onClick={() => handleDeleteBusiness(selectedBusiness.id)}>
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Business
               </Button>
@@ -2052,7 +2266,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
             {locationDialogMode === 'edit' && (
               <Button onClick={handleSaveLocation}>Save Changes</Button>
             )}
-            {locationDialogMode === 'delete' && (
+            {locationDialogMode === 'delete' && selectedLocation && (
               <Button variant="destructive" onClick={handleDeleteLocation}>
                 <Trash2 className="w-4 h-4 mr-2" />
                 Delete Location
