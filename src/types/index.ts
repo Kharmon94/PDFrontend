@@ -31,6 +31,9 @@ export interface Business {
     id: number;
     name: string;
   };
+  approval_status?: 'pending' | 'approved' | 'rejected';
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface SavedDeal {

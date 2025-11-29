@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Users, Award, DollarSign, TrendingUp, Copy, CheckCircle, Share2, Gift, Globe, ArrowRight, MapPin, Package, BarChart3, Eye, Search, Map, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
@@ -8,6 +8,8 @@ import { Badge } from './ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { toast } from 'sonner@2.0.3';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
+import { apiService } from '../services/api';
+import { Business } from '../types';
 
 interface DistributionPartnerDashboardProps {
   userName: string;
@@ -15,69 +17,249 @@ interface DistributionPartnerDashboardProps {
   onLogout?: () => void;
 }
 
+interface LocationData {
+  id: number;
+  city: string;
+  state: string;
+  businesses: number;
+  activeDeals: number;
+  monthlyGrowth: number;
+  totalRevenue: number;
+  status: 'Active' | 'Inactive';
+}
+
+interface ReferralData {
+  id: string | number;
+  business: string;
+  owner: string;
+  status: 'Active' | 'Pending' | 'Rejected';
+  commission: number;
+  joinDate: string;
+  plan: 'Basic' | 'Premium' | 'Featured';
+}
+
 export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }: DistributionPartnerDashboardProps) {
-  const [selectedLocation, setSelectedLocation] = useState<typeof partnerLocations[0] | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   
-  const stats = {
-    totalReferrals: 45,
-    activeBusinesses: 32,
-    monthlyCommission: 1250,
-    conversionRate: 71,
-    lifetimeEarnings: 8450,
-    pendingCommission: 425,
+  // State for API data
+  const [stats, setStats] = useState({
+    totalReferrals: 0,
+    activeBusinesses: 0,
+    conversionRate: 0,
+    totalViews: 0,
+    totalClicks: 0,
+    featuredBusinesses: 0,
+    activeDeals: 0,
+  });
+  
+  const [businesses, setBusinesses] = useState<Business[]>([]);
+  const [whiteLabel, setWhiteLabel] = useState<any>(null);
+  const [partnerLocations, setPartnerLocations] = useState<LocationData[]>([]);
+  const [recentReferrals, setRecentReferrals] = useState<ReferralData[]>([]);
+  const [monthlyBreakdown, setMonthlyBreakdown] = useState<Array<{ month: string; referrals: number; earnings: number }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // Helper function to parse address and extract city/state (same as admin dashboard)
+  const parseAddress = (address: string): { city: string; state: string } | null => {
+    if (!address) return null;
+    const parts = address.split(',').map(p => p.trim());
+    
+    if (parts.length >= 2) {
+      const lastPart = parts[parts.length - 1].trim();
+      const secondLastPart = parts[parts.length - 2].trim();
+      
+      // Check if last part looks like "State ZIP" (e.g., "NY 12345")
+      const stateWithZipMatch = lastPart.match(/^([A-Z]{2})\s+(\d{5})$/i);
+      if (stateWithZipMatch) {
+        return {
+          city: secondLastPart || 'Unknown',
+          state: stateWithZipMatch[1].toUpperCase()
+        };
+      }
+      
+      // Check if last part is just a state abbreviation (2 letters)
+      const stateAbbrMatch = lastPart.match(/^([A-Z]{2})$/i);
+      if (stateAbbrMatch) {
+        return {
+          city: secondLastPart || 'Unknown',
+          state: stateAbbrMatch[1].toUpperCase()
+        };
+      }
+      
+      // Try to extract state from last part that might have ZIP at the end
+      const stateAtEndMatch = lastPart.match(/([A-Z]{2})(?:\s+\d{5})?$/i);
+      if (stateAtEndMatch && parts.length >= 2) {
+        return {
+          city: secondLastPart || 'Unknown',
+          state: stateAtEndMatch[1].toUpperCase()
+        };
+      }
+      
+      // Try full state name
+      const stateNames = ['Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 
+        'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 'Illinois', 
+        'Indiana', 'Iowa', 'Kansas', 'Kentucky', 'Louisiana', 'Maine', 'Maryland', 
+        'Massachusetts', 'Michigan', 'Minnesota', 'Mississippi', 'Missouri', 'Montana', 
+        'Nebraska', 'Nevada', 'New Hampshire', 'New Jersey', 'New Mexico', 'New York', 
+        'North Carolina', 'North Dakota', 'Ohio', 'Oklahoma', 'Oregon', 'Pennsylvania', 
+        'Rhode Island', 'South Carolina', 'South Dakota', 'Tennessee', 'Texas', 'Utah', 
+        'Vermont', 'Virginia', 'Washington', 'West Virginia', 'Wisconsin', 'Wyoming'];
+      
+      if (stateNames.some(state => lastPart.toLowerCase().includes(state.toLowerCase()))) {
+        return {
+          city: secondLastPart || 'Unknown',
+          state: lastPart
+        };
+      }
+      
+      // Fallback: use last two parts as city and state
+      return {
+        city: secondLastPart || parts[0] || 'Unknown',
+        state: lastPart || 'Unknown'
+      };
+    }
+    
+    return null;
   };
-
-  const partnerLocations = [
-    {
-      id: 1,
-      city: 'New York',
-      state: 'NY',
-      businesses: 18,
-      activeDeals: 42,
-      monthlyGrowth: 12.5,
-      totalRevenue: 450,
-      status: 'Active',
-    },
-    {
-      id: 2,
-      city: 'Brooklyn',
-      state: 'NY',
-      businesses: 10,
-      activeDeals: 25,
-      monthlyGrowth: 8.3,
-      totalRevenue: 280,
-      status: 'Active',
-    },
-    {
-      id: 3,
-      city: 'Queens',
-      state: 'NY',
-      businesses: 4,
-      activeDeals: 9,
-      monthlyGrowth: 15.2,
-      totalRevenue: 120,
-      status: 'Active',
-    },
-  ];
-
-  const recentReferrals = [
-    { id: 1, business: 'Green Leaf Cafe', owner: 'Sarah Chen', status: 'Active', commission: 50, joinDate: 'Oct 20, 2025', plan: 'Premium' },
-    { id: 2, business: 'Peak Fitness', owner: 'Mike Johnson', status: 'Pending', commission: 75, joinDate: 'Oct 18, 2025', plan: 'Featured' },
-    { id: 3, business: 'Style Studio', owner: 'Emma Davis', status: 'Active', commission: 50, joinDate: 'Oct 15, 2025', plan: 'Premium' },
-    { id: 4, business: 'Tech Repair Hub', owner: 'James Wilson', status: 'Active', commission: 30, joinDate: 'Oct 12, 2025', plan: 'Basic' },
-  ];
-
-  const monthlyBreakdown = [
-    { month: 'July', referrals: 8, earnings: 420 },
-    { month: 'August', referrals: 12, earnings: 680 },
-    { month: 'September', referrals: 10, earnings: 550 },
-    { month: 'October', referrals: 15, earnings: 825 },
-  ];
+  
+  // Fetch all dashboard data
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setIsLoading(true);
+      try {
+        // Fetch dashboard stats
+        const dashboardStats = await apiService.getDistributionDashboard();
+        
+        // Fetch businesses
+        const businessesData = await apiService.getDistributionBusinesses();
+        setBusinesses(Array.isArray(businessesData) ? businessesData : []);
+        
+        // Fetch white label
+        try {
+          const whiteLabelData = await apiService.getWhiteLabel();
+          setWhiteLabel(whiteLabelData);
+        } catch (error) {
+          console.error('Failed to load white label:', error);
+        }
+        
+        // Calculate stats from businesses
+        const totalBusinesses = Array.isArray(businessesData) ? businessesData.length : 0;
+        const activeBusinesses = businessesData.filter((b: Business) => (b.approval_status || 'approved') === 'approved').length;
+        const pendingBusinesses = businessesData.filter((b: Business) => b.approval_status === 'pending').length;
+        const activeDeals = businessesData.filter((b: Business) => b.has_deals || b.hasDeals || false).length;
+        const conversionRate = totalBusinesses > 0 ? Math.round((activeBusinesses / totalBusinesses) * 100) : 0;
+        
+        setStats({
+          totalReferrals: totalBusinesses,
+          activeBusinesses: activeBusinesses,
+          conversionRate: conversionRate,
+          totalViews: dashboardStats.total_views || 0,
+          totalClicks: dashboardStats.total_clicks || 0,
+          featuredBusinesses: dashboardStats.featured_businesses || 0,
+          activeDeals: dashboardStats.active_deals || 0,
+        });
+        
+        // Transform businesses into referrals
+        const referrals: ReferralData[] = businessesData.map((business: Business) => {
+          const plan = business.featured ? 'Featured' : (business.has_deals || business.hasDeals ? 'Premium' : 'Basic');
+          const status = (business.approval_status || 'approved') === 'approved' ? 'Active' : 
+                        business.approval_status === 'pending' ? 'Pending' : 'Rejected';
+          
+          return {
+            id: business.id,
+            business: business.name,
+            owner: business.user?.name || 'Unknown',
+            status: status as 'Active' | 'Pending' | 'Rejected',
+            commission: 0, // No commission tracking in backend yet
+            joinDate: new Date(business.created_at || Date.now()).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            plan: plan as 'Basic' | 'Premium' | 'Featured',
+          };
+        });
+        setRecentReferrals(referrals.sort((a, b) => new Date(b.joinDate).getTime() - new Date(a.joinDate).getTime()));
+        
+        // Calculate locations from businesses
+        const locationMap: Record<string, { city: string; state: string; businesses: Business[] }> = {};
+        businessesData.forEach((business: Business) => {
+          const parsed = parseAddress(business.address || '');
+          if (!parsed) return;
+          
+          const key = `${parsed.city}, ${parsed.state}`;
+          if (!locationMap[key]) {
+            locationMap[key] = {
+              city: parsed.city,
+              state: parsed.state,
+              businesses: []
+            };
+          }
+          locationMap[key].businesses.push(business);
+        });
+        
+        const locations: LocationData[] = Object.entries(locationMap).map(([key, data], index) => {
+          const locationBusinesses = data.businesses;
+          const businessesWithDeals = locationBusinesses.filter(b => b.has_deals || b.hasDeals);
+          
+          return {
+            id: index + 1,
+            city: data.city,
+            state: data.state,
+            businesses: locationBusinesses.length,
+            activeDeals: businessesWithDeals.length,
+            monthlyGrowth: 0, // No historical data tracking in backend yet
+            totalRevenue: 0, // No revenue tracking in backend yet
+            status: 'Active' as const,
+          };
+        }).sort((a, b) => a.city.localeCompare(b.city));
+        
+        setPartnerLocations(locations);
+        
+        // Calculate monthly breakdown from business creation dates
+        const monthlyStats: Record<string, { referrals: number; earnings: number }> = {};
+        
+        businessesData.forEach((business: Business) => {
+          const createdDate = new Date(business.created_at || Date.now());
+          const monthKey = createdDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          
+          if (!monthlyStats[monthKey]) {
+            monthlyStats[monthKey] = { referrals: 0, earnings: 0 };
+          }
+          
+          monthlyStats[monthKey].referrals++;
+          // No earnings calculation - no commission tracking in backend yet
+          monthlyStats[monthKey].earnings = 0;
+        });
+        
+        // Sort by month and get last 4 months
+        const breakdown = Object.entries(monthlyStats)
+          .map(([month, data]) => ({
+            month: month,
+            referrals: data.referrals,
+            earnings: 0, // No commission tracking in backend yet
+          }))
+          .sort((a, b) => {
+            const dateA = new Date(a.month + ' 1, ' + new Date().getFullYear());
+            const dateB = new Date(b.month + ' 1, ' + new Date().getFullYear());
+            return dateB.getTime() - dateA.getTime();
+          })
+          .slice(0, 4);
+        
+        setMonthlyBreakdown(breakdown);
+        
+      } catch (error: any) {
+        console.error('Failed to load dashboard data:', error);
+        toast.error(error.message || 'Failed to load dashboard data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchDashboardData();
+  }, []);
 
   const copyReferralLink = async () => {
-    const referralLink = 'https://preferreddeals.com/signup?ref=DIST12345';
+    const subdomain = whiteLabel?.subdomain || 'network';
+    const referralLink = `https://${subdomain}.preferreddeals.com/signup`;
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
         await navigator.clipboard.writeText(referralLink);
@@ -103,11 +285,26 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-muted rounded w-64"></div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-48 bg-muted rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
       <div className="mb-6 sm:mb-8">
         <h1 className="mb-2">Distribution Partner Dashboard</h1>
-        <p className="text-muted-foreground text-sm sm:text-base">Track your referrals and earnings, {userName}</p>
+        <p className="text-muted-foreground text-sm sm:text-base">Manage your network and track performance, {userName}</p>
       </div>
 
       {/* Stats Grid */}
@@ -137,11 +334,11 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
         <Card>
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-2 sm:mb-4">
-              <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-gray-900" />
+              <Eye className="w-6 h-6 sm:w-8 sm:h-8 text-gray-900" />
             </div>
-            <p className="text-xs sm:text-sm text-muted-foreground mb-1">This Month</p>
-            <p className="text-2xl sm:text-3xl">${stats.monthlyCommission.toLocaleString()}</p>
-            <p className="text-xs text-muted-foreground mt-1">Commission earned</p>
+            <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Views</p>
+            <p className="text-2xl sm:text-3xl">{stats.totalViews.toLocaleString()}</p>
+            <p className="text-xs text-muted-foreground mt-1">All businesses</p>
           </CardContent>
         </Card>
 
@@ -230,20 +427,22 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
               <div className="grid sm:grid-cols-3 gap-3 sm:gap-4">
                 <div className="p-3 sm:p-4 bg-white rounded-lg border">
                   <p className="text-xs sm:text-sm text-muted-foreground mb-1">Your Platform URL</p>
-                  <p className="text-xs sm:text-sm font-medium break-all">community-connect.preferreddeals.com</p>
+                  <p className="text-xs sm:text-sm font-medium break-all">
+                    {whiteLabel?.customDomain || (whiteLabel?.subdomain ? `${whiteLabel.subdomain}.preferreddeals.com` : 'Not configured')}
+                  </p>
                 </div>
                 <div className="p-3 sm:p-4 bg-white rounded-lg border">
                   <p className="text-xs sm:text-sm text-muted-foreground mb-1">Pending Approvals</p>
-                  <p className="text-xl sm:text-2xl">5</p>
+                  <p className="text-xl sm:text-2xl">{businesses.filter(b => (b.approval_status || '') === 'pending').length}</p>
                 </div>
                 <div className="p-3 sm:p-4 bg-white rounded-lg border">
                   <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Businesses</p>
-                  <p className="text-xl sm:text-2xl">42</p>
+                  <p className="text-xl sm:text-2xl">{stats.totalReferrals}</p>
                 </div>
               </div>
               
               <div className="flex flex-col sm:flex-row gap-3">
-                <Button className="flex-1" onClick={() => toast.info('White-label platform configuration coming soon!')}>
+                <Button className="flex-1" onClick={() => onNavigate?.('white-label-settings')}>
                   <Globe className="w-4 h-4 mr-2" />
                   <span className="text-sm">Manage Platform</span>
                   <ArrowRight className="w-4 h-4 ml-2" />
@@ -272,7 +471,7 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
                   type="text"
-                  value="https://preferreddeals.com/signup?ref=DIST12345"
+                  value={whiteLabel?.subdomain ? `https://${whiteLabel.subdomain}.preferreddeals.com/signup` : 'https://preferreddeals.com/signup'}
                   readOnly
                   className="flex-1 px-3 py-2 border rounded-md bg-gray-50 text-xs sm:text-sm"
                 />
@@ -295,31 +494,31 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
           </Card>
 
           <div className="grid lg:grid-cols-2 gap-4 sm:gap-6">
-            {/* Earnings Summary */}
+            {/* Analytics Summary */}
             <Card>
               <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-base sm:text-lg">Earnings Summary</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Your commission breakdown</CardDescription>
+                <CardTitle className="text-base sm:text-lg">Analytics Summary</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Your platform performance metrics</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6 pt-0">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs sm:text-sm">
-                    <span className="text-muted-foreground">Progress to next payout</span>
-                    <span>${stats.monthlyCommission} / $2,000</span>
-                  </div>
-                  <Progress value={62.5} />
-                </div>
                 <div className="grid grid-cols-2 gap-3 sm:gap-4">
                   <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Earned</p>
-                    <p className="text-xl sm:text-2xl">${stats.lifetimeEarnings.toLocaleString()}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Views</p>
+                    <p className="text-xl sm:text-2xl">{stats.totalViews.toLocaleString()}</p>
                   </div>
                   <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Pending</p>
-                    <p className="text-xl sm:text-2xl">${stats.pendingCommission}</p>
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Total Clicks</p>
+                    <p className="text-xl sm:text-2xl">{stats.totalClicks.toLocaleString()}</p>
+                  </div>
+                  <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Featured Businesses</p>
+                    <p className="text-xl sm:text-2xl">{stats.featuredBusinesses}</p>
+                  </div>
+                  <div className="p-3 sm:p-4 bg-gray-50 rounded-lg">
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-1">Active Deals</p>
+                    <p className="text-xl sm:text-2xl">{stats.activeDeals}</p>
                   </div>
                 </div>
-                <Button className="w-full text-sm">Request Payout</Button>
               </CardContent>
             </Card>
 
@@ -341,7 +540,7 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
                         <Badge variant={referral.status === 'Active' ? 'default' : 'secondary'} className="text-xs">
                           {referral.status}
                         </Badge>
-                        <span className="text-xs sm:text-sm">${referral.commission}</span>
+                        <span className="text-xs sm:text-sm">{referral.plan}</span>
                       </div>
                     </div>
                   ))}
@@ -353,13 +552,13 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
           {/* Tips Card */}
           <Card className="bg-gradient-to-br from-gray-50 to-gray-100">
             <CardHeader>
-              <CardTitle>💡 Maximize Your Earnings</CardTitle>
+              <CardTitle>💡 Grow Your Network</CardTitle>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                  <span>Focus on businesses that would benefit from premium features for higher commissions</span>
+                  <span>Focus on businesses that would benefit from premium features for better visibility</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
@@ -401,7 +600,9 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
                         </Badge>
                         <span className="text-muted-foreground">{referral.joinDate}</span>
                       </div>
-                      <span className="font-medium">${referral.commission}</span>
+                      <Badge variant={referral.plan === 'Featured' ? 'default' : 'secondary'} className="text-xs">
+                        {referral.plan}
+                      </Badge>
                     </div>
                   </div>
                 ))}
@@ -417,7 +618,6 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
                       <TableHead className="text-xs sm:text-sm">Plan</TableHead>
                       <TableHead className="text-xs sm:text-sm">Status</TableHead>
                       <TableHead className="text-xs sm:text-sm">Join Date</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Commission</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -436,7 +636,6 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
                           </Badge>
                         </TableCell>
                         <TableCell className="text-xs sm:text-sm">{referral.joinDate}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">${referral.commission}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -506,10 +705,10 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
                   <CardContent className="p-3 sm:p-4">
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-xs text-muted-foreground">Total Revenue</p>
-                        <p className="text-xl sm:text-2xl">${partnerLocations.reduce((sum, loc) => sum + loc.totalRevenue, 0)}</p>
+                        <p className="text-xs text-muted-foreground">Active Deals</p>
+                        <p className="text-xl sm:text-2xl">{partnerLocations.reduce((sum, loc) => sum + loc.activeDeals, 0)}</p>
                       </div>
-                      <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
+                      <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
                   </CardContent>
                 </Card>
@@ -543,17 +742,6 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
                           <span className="text-muted-foreground">Active Deals</span>
                           <span className="font-medium">{location.activeDeals}</span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Monthly Growth</span>
-                          <span className="font-medium text-green-600 flex items-center gap-1">
-                            <TrendingUp className="w-3 h-3" />
-                            {location.monthlyGrowth}%
-                          </span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Revenue</span>
-                          <span className="font-medium">${location.totalRevenue}</span>
-                        </div>
                       </div>
 
                       <Button variant="outline" size="sm" className="w-full mt-3 text-xs">
@@ -572,60 +760,30 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
           <div className="space-y-4 sm:space-y-6">
             <Card>
               <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-base sm:text-lg">Earnings History</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Monthly earnings breakdown</CardDescription>
+                <CardTitle className="text-base sm:text-lg">Referral History</CardTitle>
+                <CardDescription className="text-xs sm:text-sm">Monthly business referrals breakdown</CardDescription>
               </CardHeader>
               <CardContent className="p-4 sm:p-6 pt-0 overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs sm:text-sm">Month</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Referrals</TableHead>
-                      <TableHead className="text-xs sm:text-sm">Earnings</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {monthlyBreakdown.map((month) => (
-                      <TableRow key={month.month}>
-                        <TableCell className="text-xs sm:text-sm">{month.month}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">{month.referrals}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">${month.earnings.toLocaleString()}</TableCell>
+                {monthlyBreakdown.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">No referral history available</div>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="text-xs sm:text-sm">Month</TableHead>
+                        <TableHead className="text-xs sm:text-sm">Referrals</TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="p-4 sm:p-6">
-                <CardTitle className="text-base sm:text-lg">Commission Structure</CardTitle>
-                <CardDescription className="text-xs sm:text-sm">Earn more with premium referrals</CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6 pt-0">
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="p-3 sm:p-4 border rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm sm:text-base">Basic Plan</span>
-                      <Badge variant="secondary" className="text-xs">$30/referral</Badge>
-                    </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Standard business listing</p>
-                  </div>
-                  <div className="p-3 sm:p-4 border rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm sm:text-base">Premium Plan</span>
-                      <Badge variant="default" className="text-xs">$50/referral</Badge>
-                    </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Enhanced visibility and features</p>
-                  </div>
-                  <div className="p-3 sm:p-4 border rounded-lg bg-gray-50">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-sm sm:text-base">Featured Plan</span>
-                      <Badge className="bg-black text-white text-xs">$75/referral</Badge>
-                    </div>
-                    <p className="text-xs sm:text-sm text-muted-foreground">Top placement and maximum exposure</p>
-                  </div>
-                </div>
+                    </TableHeader>
+                    <TableBody>
+                      {monthlyBreakdown.map((month) => (
+                        <TableRow key={month.month}>
+                          <TableCell className="text-xs sm:text-sm">{month.month}</TableCell>
+                          <TableCell className="text-xs sm:text-sm">{month.referrals}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -684,29 +842,6 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
                   </CardContent>
                 </Card>
 
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Revenue</p>
-                        <p className="text-2xl font-semibold">${selectedLocation.totalRevenue}</p>
-                      </div>
-                      <DollarSign className="w-8 h-8 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-muted-foreground">Growth</p>
-                        <p className="text-2xl font-semibold text-green-600">+{selectedLocation.monthlyGrowth}%</p>
-                      </div>
-                      <TrendingUp className="w-8 h-8 text-green-600" />
-                    </div>
-                  </CardContent>
-                </Card>
               </div>
 
               {/* Performance Metrics */}
@@ -716,18 +851,16 @@ export function DistributionPartnerDashboard({ userName, onNavigate, onLogout }:
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Deals per Business</span>
                     <span className="font-medium">
-                      {(selectedLocation.activeDeals / selectedLocation.businesses).toFixed(1)}
+                      {selectedLocation.businesses > 0 ? (selectedLocation.activeDeals / selectedLocation.businesses).toFixed(1) : '0.0'}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Revenue per Business</span>
-                    <span className="font-medium">
-                      ${(selectedLocation.totalRevenue / selectedLocation.businesses).toFixed(2)}
-                    </span>
+                    <span className="text-muted-foreground">Total Businesses</span>
+                    <span className="font-medium">{selectedLocation.businesses}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Monthly Growth Rate</span>
-                    <span className="font-medium text-green-600">+{selectedLocation.monthlyGrowth}%</span>
+                    <span className="text-muted-foreground">Businesses with Deals</span>
+                    <span className="font-medium">{selectedLocation.activeDeals}</span>
                   </div>
                 </div>
               </div>
