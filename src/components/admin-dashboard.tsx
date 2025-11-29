@@ -111,6 +111,27 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     }
   }, [activeTab]);
 
+  // Fetch distributors when tab changes
+  useEffect(() => {
+    if (activeTab === 'distributors') {
+      fetchDistributors();
+    }
+  }, [activeTab]);
+
+  const fetchDistributors = async () => {
+    setIsLoadingDistributors(true);
+    try {
+      const response = await apiService.getAdminDistributors();
+      setActiveDistributors(Array.isArray(response.distributors) ? response.distributors : []);
+    } catch (error: any) {
+      console.error('Failed to load distributors:', error);
+      toast.error(error.message || 'Failed to load distributors');
+      setActiveDistributors([]);
+    } finally {
+      setIsLoadingDistributors(false);
+    }
+  };
+
   const fetchUsers = async () => {
     setIsLoadingUsers(true);
     try {
@@ -186,7 +207,8 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
   // Legacy mock data for features not yet in backend (approvals, distributors)
   const pendingApprovals: any[] = [];
   const distributors: any[] = [];
-  const activeDistributors: any[] = []; // Empty array for now until backend API is added
+  const [activeDistributors, setActiveDistributors] = useState<any[]>([]);
+  const [isLoadingDistributors, setIsLoadingDistributors] = useState(false);
 
   // Helper function to parse address and extract city/state
   const parseAddress = (address: string): { city: string; state: string } | null => {
@@ -244,14 +266,18 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
   const fetchLocations = async () => {
     setIsLoadingLocations(true);
     try {
-      // Fetch all businesses (without pagination for location aggregation)
-      const response = await apiService.getBusinesses({});
+      // Use admin businesses endpoint to get all businesses with pagination
+      // Fetch first page with larger page size to get more businesses at once
+      const response = await apiService.getAdminBusinesses({
+        page: 1,
+        per_page: 100 // Get up to 100 businesses for location aggregation
+      });
       
-      // Handle both array response and object with businesses property
-      const allBusinesses = Array.isArray(response) 
-        ? response 
-        : (response && Array.isArray(response.businesses)) 
-          ? response.businesses 
+      // Handle admin businesses response which has businesses array and pagination
+      const allBusinesses = (response && Array.isArray(response.businesses)) 
+        ? response.businesses 
+        : Array.isArray(response)
+          ? response
           : [];
       
       // Group businesses by location (city, state)
@@ -345,6 +371,13 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
       
       // Ensure locationData is always an array
       const validLocationData = Array.isArray(locationData) ? locationData : [];
+      
+      console.log('Locations data:', {
+        totalBusinesses: allBusinesses.length,
+        locationsFound: validLocationData.length,
+        locations: validLocationData
+      });
+      
       setLocations(validLocationData);
     } catch (error: any) {
       console.error('Failed to load locations:', error);
@@ -1260,7 +1293,12 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
               </div>
             </CardHeader>
             <CardContent className="p-4 sm:p-6 pt-0">
-              <div className="space-y-4">
+              {isLoadingDistributors ? (
+                <div className="text-center py-8 text-muted-foreground">Loading distributors...</div>
+              ) : activeDistributors.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No distributors found</div>
+              ) : (
+                <div className="space-y-4">
                   {(Array.isArray(activeDistributors) ? activeDistributors : []).map((distributor) => (
                   <Card key={distributor.id} className="border-2">
                     <CardContent className="p-4">
@@ -1356,14 +1394,15 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                           </div>
                           <div className="p-3 bg-muted/30 rounded-lg">
                             <p className="text-xs text-muted-foreground mb-1">Members</p>
-                            <p className="text-xl font-semibold">{distributor.communityMembers}</p>
+                            <p className="text-xl font-semibold">{distributor.communityMembers || 0}</p>
                           </div>
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
-              </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
@@ -1939,7 +1978,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-muted-foreground">Community Members</p>
-                          <p className="text-2xl font-semibold">{selectedDistributor.communityMembers || 0}</p>
+                          <p className="text-2xl font-semibold">{selectedDistributor?.communityMembers || 0}</p>
                         </div>
                         <Users className="w-8 h-8 text-muted-foreground" />
                       </div>
@@ -1970,7 +2009,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                       <span className="text-muted-foreground">Members per Business</span>
                       <span className="font-medium">
                         {selectedDistributor.totalBusinesses 
-                          ? Math.round(selectedDistributor.communityMembers / selectedDistributor.totalBusinesses)
+                          ? Math.round((selectedDistributor?.communityMembers || 0) / (selectedDistributor?.totalBusinesses || 1))
                           : 0}
                       </span>
                     </div>

@@ -348,6 +348,10 @@ class ApiService {
     });
   }
 
+  async getAdminDistributors(): Promise<{ distributors: any[] }> {
+    return this.request('/admin/distributors');
+  }
+
   async getPendingApprovals(): Promise<{ businesses: Business[]; count: number }> {
     return this.request('/admin/pending_approvals');
   }
