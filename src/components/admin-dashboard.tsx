@@ -245,16 +245,29 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
     setIsLoadingLocations(true);
     try {
       // Fetch all businesses (without pagination for location aggregation)
-      const allBusinesses = await apiService.getBusinesses({});
+      const response = await apiService.getBusinesses({});
+      
+      // Handle both array response and object with businesses property
+      const allBusinesses = Array.isArray(response) 
+        ? response 
+        : (response && Array.isArray(response.businesses)) 
+          ? response.businesses 
+          : [];
       
       // Group businesses by location (city, state)
-      const locationMap = new Map<string, {
-        city: string;
-        state: string;
-        businesses: any[];
-      }>();
+      // Safely create Map - ensure Map constructor is available
+      let locationMap: Map<string, { city: string; state: string; businesses: any[] }>;
+      try {
+        locationMap = new Map();
+      } catch (e) {
+        console.error('Error creating Map:', e);
+        // Fallback to plain object if Map is not available
+        setLocations([]);
+        setIsLoadingLocations(false);
+        return;
+      }
       
-      if (Array.isArray(allBusinesses)) {
+      if (Array.isArray(allBusinesses) && allBusinesses.length > 0) {
         allBusinesses.forEach((business: any) => {
           if (!business || typeof business !== 'object') return;
           
@@ -277,7 +290,16 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
       }
       
       // Convert map to location objects with statistics
-      const locationData = Array.from(locationMap.entries()).map(([key, data], index) => {
+      // Safely convert Map to array
+      let locationEntries: Array<[string, { city: string; state: string; businesses: any[] }]>;
+      try {
+        locationEntries = Array.from(locationMap.entries());
+      } catch (e) {
+        console.error('Error converting Map to array:', e);
+        locationEntries = [];
+      }
+      
+      const locationData = locationEntries.map(([key, data], index) => {
         const locationBusinesses = Array.isArray(data.businesses) ? data.businesses : [];
         const businessesWithDeals = locationBusinesses.filter((b: any) => b && (b.has_deals || b.hasDeals));
         
@@ -288,13 +310,22 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
         // Get unique user IDs for this location - safely handle the Set construction
         const userIds: (string | number)[] = locationBusinesses
           .map((b: any) => {
-            if (!b) return null;
+            if (!b || typeof b !== 'object') return null;
             const id = b.user?.id || b.user_id;
             return id != null ? id : null;
           })
-          .filter((id: any): id is string | number => id != null && (typeof id === 'string' || typeof id === 'number'));
+          .filter((id: any): id is string | number => {
+            return id != null && (typeof id === 'string' || typeof id === 'number');
+          });
         
-        const uniqueUserIds = new Set(userIds);
+        // Safely create Set - ensure Set constructor is available
+        let uniqueUserIds: Set<string | number>;
+        try {
+          uniqueUserIds = new Set(userIds);
+        } catch (e) {
+          console.error('Error creating Set:', e, 'userIds:', userIds);
+          uniqueUserIds = new Set([]);
+        }
         
         return {
           id: index + 1,
@@ -312,7 +343,9 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
         return (a.city || '').localeCompare(b.city || '');
       });
       
-      setLocations(locationData);
+      // Ensure locationData is always an array
+      const validLocationData = Array.isArray(locationData) ? locationData : [];
+      setLocations(validLocationData);
     } catch (error: any) {
       console.error('Failed to load locations:', error);
       toast.error(error.message || 'Failed to load locations');
@@ -970,7 +1003,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-muted-foreground">Total Cities</p>
-                        <p className="text-xl sm:text-2xl">{locations.length}</p>
+                        <p className="text-xl sm:text-2xl">{Array.isArray(locations) ? locations.length : 0}</p>
                       </div>
                       <Map className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
@@ -981,7 +1014,10 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-muted-foreground">Total Businesses</p>
-                        <p className="text-xl sm:text-2xl">{(Array.isArray(locations) ? locations.reduce((sum, loc) => sum + (Number(loc?.totalBusinesses) || 0), 0) : 0).toLocaleString()}</p>
+                        <p className="text-xl sm:text-2xl">{(() => {
+                          const total = Array.isArray(locations) ? locations.reduce((sum, loc) => sum + (Number(loc?.totalBusinesses) || 0), 0) : 0;
+                          return typeof total === 'number' && !isNaN(total) ? total.toLocaleString() : '0';
+                        })()}</p>
                       </div>
                       <Package className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
@@ -992,7 +1028,10 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-muted-foreground">Active Deals</p>
-                        <p className="text-xl sm:text-2xl">{(Array.isArray(locations) ? locations.reduce((sum, loc) => sum + (Number(loc?.activeDeals) || 0), 0) : 0).toLocaleString()}</p>
+                        <p className="text-xl sm:text-2xl">{(() => {
+                          const total = Array.isArray(locations) ? locations.reduce((sum, loc) => sum + (Number(loc?.activeDeals) || 0), 0) : 0;
+                          return typeof total === 'number' && !isNaN(total) ? total.toLocaleString() : '0';
+                        })()}</p>
                       </div>
                       <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
@@ -1003,7 +1042,10 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-muted-foreground">Total Users</p>
-                        <p className="text-xl sm:text-2xl">{(Array.isArray(locations) ? locations.reduce((sum, loc) => sum + (Number(loc?.totalUsers) || 0), 0) : 0).toLocaleString()}</p>
+                        <p className="text-xl sm:text-2xl">{(() => {
+                          const total = Array.isArray(locations) ? locations.reduce((sum, loc) => sum + (Number(loc?.totalUsers) || 0), 0) : 0;
+                          return typeof total === 'number' && !isNaN(total) ? total.toLocaleString() : '0';
+                        })()}</p>
                       </div>
                       <Users className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
@@ -1019,7 +1061,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="h-4 bg-muted rounded w-48 mx-auto"></div>
                   </div>
                 </div>
-              ) : locations.length === 0 ? (
+              ) : (!Array.isArray(locations) || locations.length === 0) ? (
                 <div className="text-center py-12">
                   <Map className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
                   <h3 className="text-lg font-semibold mb-2">No Locations Found</h3>
@@ -1102,7 +1144,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-8">Loading...</TableCell>
                       </TableRow>
-                    ) : locations.length === 0 ? (
+                    ) : (!Array.isArray(locations) || locations.length === 0) ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No locations found</TableCell>
                       </TableRow>
