@@ -254,37 +254,52 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
         businesses: any[];
       }>();
       
-      allBusinesses.forEach((business: any) => {
-        const parsed = parseAddress(business.address || '');
-        if (!parsed) return;
-        
-        const key = `${parsed.city}, ${parsed.state}`;
-        if (!locationMap.has(key)) {
-          locationMap.set(key, {
-            city: parsed.city,
-            state: parsed.state,
-            businesses: []
-          });
-        }
-        locationMap.get(key)!.businesses.push(business);
-      });
+      if (Array.isArray(allBusinesses)) {
+        allBusinesses.forEach((business: any) => {
+          if (!business || typeof business !== 'object') return;
+          
+          const parsed = parseAddress(business.address || '');
+          if (!parsed) return;
+          
+          const key = `${parsed.city}, ${parsed.state}`;
+          if (!locationMap.has(key)) {
+            locationMap.set(key, {
+              city: parsed.city || 'Unknown',
+              state: parsed.state || 'Unknown',
+              businesses: []
+            });
+          }
+          const locationData = locationMap.get(key);
+          if (locationData && Array.isArray(locationData.businesses)) {
+            locationData.businesses.push(business);
+          }
+        });
+      }
       
       // Convert map to location objects with statistics
       const locationData = Array.from(locationMap.entries()).map(([key, data], index) => {
-        const locationBusinesses = data.businesses;
-        const businessesWithDeals = locationBusinesses.filter((b: any) => b.has_deals || b.hasDeals);
+        const locationBusinesses = Array.isArray(data.businesses) ? data.businesses : [];
+        const businessesWithDeals = locationBusinesses.filter((b: any) => b && (b.has_deals || b.hasDeals));
         
         // Calculate monthly growth (placeholder - would need historical data)
         // For now, use a random growth rate based on number of businesses
         const monthlyGrowth = Math.round((locationBusinesses.length * 2.5) % 20 + 5);
         
-        // Get unique user IDs for this location
-        const uniqueUserIds = new Set(locationBusinesses.map((b: any) => b.user?.id || b.user_id).filter(Boolean));
+        // Get unique user IDs for this location - safely handle the Set construction
+        const userIds: (string | number)[] = locationBusinesses
+          .map((b: any) => {
+            if (!b) return null;
+            const id = b.user?.id || b.user_id;
+            return id != null ? id : null;
+          })
+          .filter((id: any): id is string | number => id != null && (typeof id === 'string' || typeof id === 'number'));
+        
+        const uniqueUserIds = new Set(userIds);
         
         return {
           id: index + 1,
-          city: data.city,
-          state: data.state,
+          city: data.city || 'Unknown',
+          state: data.state || 'Unknown',
           totalBusinesses: Number(locationBusinesses.length) || 0,
           activeDeals: Number(businessesWithDeals.length) || 0,
           monthlyGrowth: Number(monthlyGrowth) || 0,
@@ -294,7 +309,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
         };
       }).sort((a, b) => {
         // Sort by city name
-        return a.city.localeCompare(b.city);
+        return (a.city || '').localeCompare(b.city || '');
       });
       
       setLocations(locationData);
