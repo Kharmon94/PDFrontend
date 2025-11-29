@@ -285,10 +285,10 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
           id: index + 1,
           city: data.city,
           state: data.state,
-          totalBusinesses: locationBusinesses.length,
-          activeDeals: businessesWithDeals.length,
-          monthlyGrowth: monthlyGrowth,
-          totalUsers: uniqueUserIds.size,
+          totalBusinesses: Number(locationBusinesses.length) || 0,
+          activeDeals: Number(businessesWithDeals.length) || 0,
+          monthlyGrowth: Number(monthlyGrowth) || 0,
+          totalUsers: Number(uniqueUserIds.size) || 0,
           status: 'Active' as const,
           totalRevenue: 0 // Placeholder
         };
@@ -966,7 +966,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-muted-foreground">Total Businesses</p>
-                        <p className="text-xl sm:text-2xl">{locations.reduce((sum, loc) => sum + loc.totalBusinesses, 0).toLocaleString()}</p>
+                        <p className="text-xl sm:text-2xl">{locations.reduce((sum, loc) => sum + (Number(loc.totalBusinesses) || 0), 0).toLocaleString()}</p>
                       </div>
                       <Package className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
@@ -977,7 +977,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-muted-foreground">Active Deals</p>
-                        <p className="text-xl sm:text-2xl">{locations.reduce((sum, loc) => sum + loc.activeDeals, 0).toLocaleString()}</p>
+                        <p className="text-xl sm:text-2xl">{locations.reduce((sum, loc) => sum + (Number(loc.activeDeals) || 0), 0).toLocaleString()}</p>
                       </div>
                       <BarChart3 className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
@@ -988,7 +988,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs text-muted-foreground">Total Users</p>
-                        <p className="text-xl sm:text-2xl">{locations.reduce((sum, loc) => sum + loc.totalUsers, 0).toLocaleString()}</p>
+                        <p className="text-xl sm:text-2xl">{locations.reduce((sum, loc) => sum + (Number(loc.totalUsers) || 0), 0).toLocaleString()}</p>
                       </div>
                       <Users className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground" />
                     </div>
@@ -1052,15 +1052,15 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                     <div className="grid grid-cols-3 gap-2 text-xs">
                       <div>
                         <p className="text-muted-foreground">Businesses</p>
-                        <p className="font-medium">{location.totalBusinesses.toLocaleString()}</p>
+                        <p className="font-medium">{(location.totalBusinesses ?? 0).toLocaleString()}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Deals</p>
-                        <p className="font-medium">{location.activeDeals.toLocaleString()}</p>
+                        <p className="font-medium">{(location.activeDeals ?? 0).toLocaleString()}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Users</p>
-                        <p className="font-medium">{location.totalUsers.toLocaleString()}</p>
+                        <p className="font-medium">{(location.totalUsers ?? 0).toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
@@ -1101,9 +1101,9 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                           </div>
                         </TableCell>
                         <TableCell className="text-xs sm:text-sm">{location.state}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">{location.totalBusinesses.toLocaleString()}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">{location.activeDeals.toLocaleString()}</TableCell>
-                        <TableCell className="text-xs sm:text-sm">{location.totalUsers.toLocaleString()}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{(location.totalBusinesses ?? 0).toLocaleString()}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{(location.activeDeals ?? 0).toLocaleString()}</TableCell>
+                        <TableCell className="text-xs sm:text-sm">{(location.totalUsers ?? 0).toLocaleString()}</TableCell>
                         <TableCell className="text-xs sm:text-sm">
                           <div className="flex items-center gap-1">
                             <TrendingUp className="w-3 h-3 text-green-600" />
@@ -2166,7 +2166,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm text-muted-foreground">Total Businesses</p>
-                            <p className="text-2xl font-semibold">{selectedLocation.totalBusinesses.toLocaleString()}</p>
+                            <p className="text-2xl font-semibold">{(selectedLocation.totalBusinesses ?? 0).toLocaleString()}</p>
                           </div>
                           <Package className="w-8 h-8 text-muted-foreground" />
                         </div>
@@ -2178,7 +2178,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm text-muted-foreground">Active Deals</p>
-                            <p className="text-2xl font-semibold">{selectedLocation.activeDeals.toLocaleString()}</p>
+                            <p className="text-2xl font-semibold">{(selectedLocation.activeDeals ?? 0).toLocaleString()}</p>
                           </div>
                           <BarChart3 className="w-8 h-8 text-muted-foreground" />
                         </div>
@@ -2190,7 +2190,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                         <div className="flex items-center justify-between">
                           <div>
                             <p className="text-sm text-muted-foreground">Total Users</p>
-                            <p className="text-2xl font-semibold">{selectedLocation.totalUsers.toLocaleString()}</p>
+                            <p className="text-2xl font-semibold">{(selectedLocation.totalUsers ?? 0).toLocaleString()}</p>
                           </div>
                           <Users className="w-8 h-8 text-muted-foreground" />
                         </div>
