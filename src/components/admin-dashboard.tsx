@@ -901,7 +901,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                         <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">No users found</TableCell>
                       </TableRow>
                     ) : (
-                      {(Array.isArray(users) ? users : []).map((user) => (
+                      (Array.isArray(users) ? users : []).map((user) => (
                       <TableRow key={user.id}>
                         <TableCell className="text-xs sm:text-sm">{user.name}</TableCell>
                         <TableCell className="text-xs sm:text-sm">{user.email}</TableCell>
@@ -1107,7 +1107,7 @@ export function AdminDashboard({ userName, onLogout }: AdminDashboardProps) {
                         <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">No locations found</TableCell>
                       </TableRow>
                     ) : (
-                      {(Array.isArray(locations) ? locations : []).map((location) => (
+                      (Array.isArray(locations) ? locations : []).map((location) => (
                       <TableRow key={location.id}>
                         <TableCell className="text-xs sm:text-sm">
                           <div className="flex items-center gap-2">
